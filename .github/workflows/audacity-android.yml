@@ -72,7 +72,7 @@ jobs:
           target: desktop
           arch: linux_gcc_64
           dir: "${{ github.workspace }}/.qt/Qt"
-          modules: "qtdeclarative qt5compat qtshadertools qtnetworkauth"
+          modules: "qt5compat qtshadertools qtnetworkauth"
 
       - name: Install Qt Android arm64 kit
         uses: jurplel/install-qt-action@v4
