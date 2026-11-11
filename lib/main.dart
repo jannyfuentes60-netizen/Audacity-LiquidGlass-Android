@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:liqkit_ui/liqkit_ui.dart';
 
 void main() async {
