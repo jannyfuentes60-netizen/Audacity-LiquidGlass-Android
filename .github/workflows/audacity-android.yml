@@ -104,6 +104,14 @@ jobs:
             exit 1
           fi
           echo "QT_QML_MODELS_DIR=$(dirname "$qml_models_config")" >> "$GITHUB_ENV"
+          qml_workerscript_config="$(find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f -name Qt6QmlWorkerScriptConfig.cmake -print -quit)"
+          if [ -z "$qml_workerscript_config" ]; then
+            echo "::error::Qt6QmlMeta requires Qt6QmlWorkerScript, but its CMake package is missing from both Qt kits"
+            find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -iname '*QmlWorkerScript*' -print || true
+            exit 1
+          fi
+          echo "QT_QML_WORKERSCRIPT_DIR=$(dirname "$qml_workerscript_config")" >> "$GITHUB_ENV"
+          echo "Found Qt QML WorkerScript package: $qml_workerscript_config"
           qml_plugins_file="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake"
           if [ ! -f "$qml_plugins_file" ]; then
             echo "::error::Missing Qt QML plugin registry: $qml_plugins_file"
@@ -153,6 +161,7 @@ jobs:
             -DQt6QmlIntegration_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlIntegration" \
             -DQt6QmlMeta_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlMeta" \
             -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
+            -DQt6QmlWorkerScript_DIR="$QT_QML_WORKERSCRIPT_DIR" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
             -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
             -DQt6QuickWidgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickWidgets" \
