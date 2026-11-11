@@ -165,6 +165,7 @@ jobs:
             -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
             -DQt6QmlWorkerScript_DIR="$QT_QML_WORKERSCRIPT_DIR" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
+            -DQt6QuickTemplates2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickTemplates2" \
             -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
             -DQt6QuickWidgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickWidgets" \
             -DQt6Xml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Xml" \
