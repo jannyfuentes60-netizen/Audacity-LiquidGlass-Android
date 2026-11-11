@@ -1,0 +1,136 @@
+name: Audacity 4 Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/audacity-android.yml"
+      - "upstream/audacity"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audacity-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-arm64:
+    name: Build Audacity 4.0.2 for Android arm64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      QT_VERSION: "6.8.3"
+      ANDROID_NDK_VERSION: "27.2.12479018"
+      ANDROID_PLATFORM: "android-28"
+      QT_HOST_ROOT: "${{ runner.temp }}/Qt/6.8.3/gcc_64"
+      QT_ANDROID_ROOT: "${{ runner.temp }}/Qt/6.8.3/android_arm64_v8a"
+
+    steps:
+      - name: Checkout source and nested submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Verify pinned upstream revision
+        shell: bash
+        run: |
+          test -f upstream/audacity/CMakeLists.txt
+          test -f upstream/audacity/muse/CMakeLists.txt
+          test -f upstream/audacity/muse_deps/buildtools/manifest.cmake
+          echo "Audacity source: $(git -C upstream/audacity rev-parse HEAD)"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+            ndk;27.2.12479018
+
+      - name: Export Android NDK path
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      - name: Install Qt desktop host tools
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          dir: "${{ runner.temp }}/Qt"
+          modules: "qt5compat qtshadertools qtnetworkauth"
+
+      - name: Install Qt Android arm64 kit
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: all_os
+          target: android
+          arch: android_arm64_v8a
+          dir: "${{ runner.temp }}/Qt"
+          modules: "qt5compat qtshadertools qtnetworkauth"
+
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build build-essential pkg-config python3
+
+      - name: Apply Android-only source compatibility overlay
+        run: python3 android/prepare_android_source.py
+
+      - name: Configure native Audacity 4
+        shell: bash
+        run: |
+          "$QT_ANDROID_ROOT/bin/qt-cmake" \
+            -S upstream/audacity \
+            -B build/android-arm64 \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/build/android-install" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
+            -DCMAKE_ANDROID_NDK="$ANDROID_NDK_ROOT" \
+            -DQT_HOST_PATH="$QT_HOST_ROOT" \
+            -DAU4_BUILD_CONFIGURATION=app \
+            -DAU4_BUILD_MODE=release \
+            -DMUSE_COMPILE_USE_CCACHE=OFF \
+            -DMUSE_COMPILE_USE_UNITY=OFF \
+            -DMUSE_ENABLE_UNIT_TESTS=OFF
+
+      - name: Build Audacity Android executable and APK
+        run: cmake --build build/android-arm64 --target audacity --parallel 2
+
+      - name: Locate and validate APK
+        shell: bash
+        run: |
+          APK="$(find build/android-arm64 -type f -name '*.apk' -size +1M -print -quit)"
+          if [ -z "$APK" ]; then
+            echo "::error::The native build did not produce an APK. No placeholder artifact will be uploaded."
+            find build/android-arm64 -maxdepth 6 -type f | head -200
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp "$APK" artifacts/Audacity-4.0.2-Android-arm64.apk
+          ls -lh artifacts
+
+      - name: Upload real APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Audacity-4.0.2-Android-arm64
+          path: artifacts/Audacity-4.0.2-Android-arm64.apk
+          if-no-files-found: error
+          retention-days: 14
