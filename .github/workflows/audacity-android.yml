@@ -106,6 +106,8 @@ jobs:
             -DCMAKE_ANDROID_NDK="$ANDROID_NDK_ROOT" \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
             -DQT_HOST_PATH="$QT_HOST_ROOT" \
+            -DCMAKE_PREFIX_PATH="$QT_ANDROID_ROOT;$QT_HOST_ROOT" \
+            -DQt6_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6" \
             -DAU4_BUILD_CONFIGURATION=app \
             -DAU4_BUILD_MODE=release \
             -DMUSE_COMPILE_USE_CCACHE=OFF \
