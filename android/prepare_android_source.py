@@ -194,4 +194,24 @@ set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)
 set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF)''',
     "build wxBase without a desktop GTK toolkit on Android",
 )
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    '    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")',
+    '''    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")
+
+    # Vorbis 1.3.7 uses FindOgg.cmake, which does not consume OggConfig.cmake
+    # or the dependency prefix automatically. Pass the exact Ogg artifacts
+    # from the already-built dependency prefix to its nested CMake configure.
+    foreach(_dep_prefix ${BD_DEPENDS_PREFIXES})
+        if(EXISTS "${_dep_prefix}/include/ogg/ogg.h"
+           AND EXISTS "${_dep_prefix}/lib/libogg.so")
+            list(APPEND _dep_cmake_args
+                "-DOGG_LIBRARY=${_dep_prefix}/lib/libogg.so"
+                "-DOGG_INCLUDE_DIR=${_dep_prefix}/include")
+        endif()
+    endforeach()''',
+    "pass installed Ogg library and headers to Vorbis FindOgg",
+)
+
 print("Android source overlay applied.")
