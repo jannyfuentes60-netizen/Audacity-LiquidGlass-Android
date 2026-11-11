@@ -1,45 +1,59 @@
-# Porting status and compatibility audit
+# Android port status
 
 Last updated: 2026-11-11
 
-This document is the source of truth for porting decisions. A feature is not considered implemented merely because its name appears in the Flutter UI.
+## Target
+
+Official **Audacity 4.0.2**, preserving the upstream Qt interface and real engine. The project is no longer targeting a Flutter recreation.
 
 ## Status definitions
 
-- **Not audited:** source and dependencies have not yet been inspected.
-- **Investigating:** implementation and Android constraints are being evaluated.
+- **Not audited:** source or dependency has not yet been inspected.
+- **Investigating:** Android feasibility is being evaluated.
 - **Prototype:** a proof of concept exists but is not production-ready.
-- **Implemented:** connected to the real engine/platform implementation.
-- **Verified:** covered by repeatable tests on a physical Android device.
-- **Blocked:** a documented dependency or platform constraint prevents implementation.
-- **Adapted:** the desktop workflow has a documented Android-friendly equivalent.
+- **Implemented:** connected to upstream Audacity code and Android platform code.
+- **Verified:** tested end-to-end on a physical Android device.
+- **Blocked:** a documented platform or dependency constraint prevents implementation.
+- **Adapted:** a desktop interaction has a documented Android equivalent while preserving the underlying Audacity command.
 
 ## Compatibility inventory
 
-| Area | Scope to audit | Status |
+| Area | Required outcome | Status |
 |---|---|---|
-| Project lifecycle | New, open, save, save as, close, recovery | Not audited |
-| Audio I/O | Import, export, codecs, sample rates, channels | Not audited |
-| Tracks | Add, remove, reorder, mute, solo, gain, pan | Not audited |
-| Editing | Select, cut, copy, paste, trim, split, undo, redo | Not audited |
-| Timeline | Zoom, scroll, snapping, selection precision | Not audited |
-| Recording | Microphone capture, monitoring, input selection | Not audited |
-| Effects | Built-in effects, realtime/non-realtime processing, presets | Not audited |
-| Analysis | Analyze menu, measurements, labels and reports | Not audited |
-| Automation | Macros, scripting and command execution | Not audited |
-| Preferences | Audio, devices, interface, directories and import/export | Not audited |
-| Accessibility | Screen readers, scalable text, touch targets | Not audited |
-| Android integration | MediaStore, permissions, audio focus, lifecycle | Investigating |
+| Upstream source | Pin Audacity 4.0.2 and all submodules | Not audited |
+| Qt application | Build original Qt interface for Android | Investigating |
+| CMake/dependencies | Resolve Android toolchain and unsupported dependencies | Not audited |
+| Home/projects | Preserve Audacity 4 Home screen and project workflows | Not audited |
+| Tracks and clips | Preserve upstream track/clip model and editing commands | Not audited |
+| Timeline | Preserve selection, zoom, navigation, snapping and playhead behavior | Not audited |
+| Transport | Playback, seek, loop and stop | Not audited |
+| Recording | Android microphone input, monitoring and latency handling | Not audited |
+| Audio setup | Android output/input devices and routing | Not audited |
+| Effects | Built-in, realtime and destructive effects | Not audited |
+| Generators/analyzers | Preserve available Audacity 4 commands | Not audited |
+| Plugins | Audit VST3/LV2/AU assumptions; define Android support honestly | Not audited |
+| Projects | Open/save native .aup4 and test .aup3 conversion | Not audited |
+| Import/export | Android content URIs, codecs, sample rates and channels | Not audited |
+| Android lifecycle | Audio focus, interruptions, background/foreground and memory | Not audited |
+| Accessibility | Touch targets, scaling, keyboard and screen-reader behavior | Not audited |
+
+## Architecture rule
+
+Use upstream Audacity 4's Qt application and engine. Android-specific code belongs in narrowly scoped platform adapters and upstream build-system changes. Do not create a second editor UI in Flutter, HTML or a custom widget toolkit.
 
 ## First technical gates
 
-1. Pin the exact Audacity 3.7.8 source revision and its submodules.
-2. Map the native build graph and identify dependencies unavailable or unsupported on Android.
-3. Determine which engine components can be built as Android native libraries without the wxWidgets desktop UI.
-4. Define a narrow C ABI/JNI proof of concept before designing a broad bridge.
-5. Verify LiqKit's package version, Android support, shader behavior and performance on representative devices.
-6. Test MediaStore permission and URI behavior on Android 13+ and Android 12 or older.
+1. Pin the Audacity 4.0.2 release source and recursive submodules.
+2. Configure Qt for Android and the Android NDK/SDK toolchain.
+3. Inventory CMake targets and third-party dependencies; identify desktop-only code.
+4. Build a minimal upstream Qt Android application before adding app-specific features.
+5. Port audio device enumeration and input/output using Android-supported backends.
+6. Verify original interface rendering and touch operation on physical hardware.
 
 ## Acceptance rule
 
-A capability is only marked **Verified** after an end-to-end test on Android using the actual native implementation. UI mockups, placeholder buttons and desktop-only tests do not count.
+A button drawn on screen is not an implementation. A capability is **Implemented** only when it calls the real Audacity 4 code, and **Verified** only after repeatable end-to-end tests on Android.
+
+## Known limitation
+
+Audacity 4.0.2 is officially distributed for desktop platforms; upstream build instructions describe desktop development environments, not an official Android target. This project is an experimental community port, not an official Audacity Android release. Android compatibility must be proven dependency by dependency.
