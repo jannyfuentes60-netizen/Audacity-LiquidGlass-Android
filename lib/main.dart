@@ -49,8 +49,8 @@ class _AudacityWorkspaceState extends State<AudacityWorkspace> {
             _topBar(ink, muted, accent),
             Expanded(child: GestureDetector(
               onHorizontalDragEnd: (d) {
-                if ((d.primaryVelocity ?? 0) < -250) setState(() => _tab = (_tab + 1).clamp(0, 2));
-                if ((d.primaryVelocity ?? 0) > 250) setState(() => _tab = (_tab - 1).clamp(0, 2));
+                if ((d.primaryVelocity ?? 0) < -250) setState(() => _tab = (_tab + 1).clamp(0, 2).toInt());
+                if ((d.primaryVelocity ?? 0) > 250) setState(() => _tab = (_tab - 1).clamp(0, 2).toInt());
               },
               child: _tab == 0 ? _editor(ink, muted, accent) : _tab == 1
                 ? _projects(ink, muted, accent) : _settings(ink, muted, accent),
@@ -126,8 +126,7 @@ class _AudacityWorkspaceState extends State<AudacityWorkspace> {
     itemBuilder: (context, index) {
       final selected = _tool == index;
       return GestureDetector(onTap: () => setState(() => _tool = index), child: LiqGlassSurface(
-        tint: LiqGlassTint.dark, baseFill: selected ? const Color(0xFF25485A) : null,
-        borderRadius: BorderRadius.circular(17), padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        tint: LiqGlassTint.dark, borderRadius: BorderRadius.circular(17), padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text(_tools[index].$1, style: TextStyle(color: selected ? accent : ink, fontSize: 19)),
           Text(_tools[index].$2, style: TextStyle(color: selected ? accent : muted, fontSize: 9)),
@@ -212,12 +211,12 @@ class _AudacityWorkspaceState extends State<AudacityWorkspace> {
     child: Row(children: [
       Text('PISTAS: $_trackCount', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1)),
       const Spacer(),
-      GestureDetector(onTap: () => setState(() => _zoom = (_zoom / 1.2).clamp(.5, 3)),
+      GestureDetector(onTap: () => setState(() => _zoom = (_zoom / 1.2).clamp(.5, 3).toDouble()),
         child: Icon(Icons.remove_circle_outline, color: muted, size: 20)),
       const SizedBox(width: 12),
       Text('${(_zoom * 100).round()}%', style: TextStyle(color: accent, fontSize: 10)),
       const SizedBox(width: 12),
-      GestureDetector(onTap: () => setState(() => _zoom = (_zoom * 1.2).clamp(.5, 3)),
+      GestureDetector(onTap: () => setState(() => _zoom = (_zoom * 1.2).clamp(.5, 3).toDouble()),
         child: Icon(Icons.add_circle_outline, color: muted, size: 20)),
     ]),
   );
@@ -312,7 +311,7 @@ class _WaveformPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = size.height / 2;
     final paint = Paint()..color = color.withValues(alpha: .78)..strokeWidth = 2..strokeCap = StrokeCap.round;
-    final step = (4 / zoom).clamp(1.5, 7.0);
+    final step = (4 / zoom).clamp(1.5, 7.0).toDouble();
     for (double x = 3; x < size.width; x += step) {
       final envelope = .22 + .78 * (.5 + .5 * math.sin(x * .025));
       final wave = (math.sin(x * .19) * .45 + math.sin(x * .071) * .35 + math.cos(x * .31) * .2).abs();
