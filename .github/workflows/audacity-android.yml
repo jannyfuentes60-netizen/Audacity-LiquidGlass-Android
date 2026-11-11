@@ -72,7 +72,7 @@ jobs:
           target: desktop
           arch: linux_gcc_64
           dir: "${{ github.workspace }}/.qt/Qt"
-          modules: "qt5compat qtshadertools qtnetworkauth"
+          modules: "all"
 
       - name: Install Qt Android arm64 kit
         uses: jurplel/install-qt-action@v4
@@ -94,9 +94,18 @@ jobs:
             find "$QT_HOST_ROOT/lib/cmake" -maxdepth 4 -iname "*QmlIntegration*config.cmake" -print || true
             exit 1
           fi
-          echo "Found host header module package: $qml_integration_config"
+          echo "Found host Qt QmlIntegration package: $qml_integration_config"
+          for component in Qt6QmlMeta Qt6QmlAssetDownloader; do
+            config="$QT_HOST_ROOT/lib/cmake/$component/${component}Config.cmake"
+            if [ ! -f "$config" ]; then
+              echo "::error::Missing host Qt component $config"
+              find "$QT_HOST_ROOT/lib/cmake" -maxdepth 4 -iname "${component}*Config.cmake" -print || true
+              exit 1
+            fi
+            echo "Found host $config"
+          done
           echo "Android Qt root: $QT_ANDROID_ROOT"
-          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6QmlMeta Qt6QmlAssetDownloader Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
+          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
             config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
             if [ ! -f "$config" ]; then
               echo "::error::Missing $config"
@@ -136,6 +145,8 @@ jobs:
             -DQt6Network_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Network" \
             -DQt6Qml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml" \
             -DQt6QmlIntegration_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlIntegration" \
+            -DQt6QmlMeta_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlMeta" \
+            -DQt6QmlAssetDownloader_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlAssetDownloader" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
             -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
             -DQt6QuickWidgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickWidgets" \
