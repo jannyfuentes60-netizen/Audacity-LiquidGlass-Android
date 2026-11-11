@@ -154,4 +154,44 @@ elseif(OS_IS_WASM)''',
     "allow Qt Android APK deployment",
 )
 
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''    if(CMAKE_CXX_COMPILER)
+        list(APPEND _configure_args -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
+    endif()    # Prepare initial cache variables''',
+    r'''    if(CMAKE_CXX_COMPILER)
+        list(APPEND _configure_args -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
+    endif()
+
+    # Nested dependency builds must use the same Android cross-compilation
+    # toolchain as Audacity; forwarding compiler paths alone targets the host.
+    foreach(_var
+            CMAKE_TOOLCHAIN_FILE
+            CMAKE_SYSTEM_NAME
+            CMAKE_SYSTEM_VERSION
+            CMAKE_ANDROID_NDK
+            CMAKE_ANDROID_ARCH_ABI
+            CMAKE_ANDROID_API
+            CMAKE_ANDROID_STL_TYPE
+            CMAKE_SYSROOT
+            CMAKE_C_COMPILER_TARGET
+            CMAKE_CXX_COMPILER_TARGET)
+        if(DEFINED ${_var} AND NOT "${${_var}}" STREQUAL "")
+            list(APPEND _configure_args "-D${_var}=${${_var}}")
+        endif()
+    endforeach()
+
+    # Prepare initial cache variables''',
+    "forward Android toolchain into nested dependency builds",
+)
+
+edit(
+    "muse_deps/recipes/wxwidgets/spec.cmake",
+    r'''set(DEP_CMAKE_ARGS_LINUX   -DwxUSE_GUI=OFF)
+set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)''',
+    r'''set(DEP_CMAKE_ARGS_LINUX   -DwxUSE_GUI=OFF)
+set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)
+set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF)''',
+    "build wxBase without a desktop GTK toolkit on Android",
+)
 print("Android source overlay applied.")
