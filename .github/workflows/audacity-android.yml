@@ -82,7 +82,7 @@ jobs:
           target: android
           arch: android_arm64_v8a
           dir: "${{ github.workspace }}/.qt/Qt"
-          modules: "qt5compat qtshadertools qtnetworkauth"
+          modules: "all"
 
       - name: Verify Qt Android and host CMake components
         shell: bash
@@ -96,7 +96,7 @@ jobs:
           fi
           echo "Found host header module package: $qml_integration_config"
           echo "Android Qt root: $QT_ANDROID_ROOT"
-          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
+          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6QmlMeta Qt6QmlAssetDownloader Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
             config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
             if [ ! -f "$config" ]; then
               echo "::error::Missing $config"
