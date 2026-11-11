@@ -25,8 +25,8 @@ jobs:
       QT_VERSION: "6.8.3"
       ANDROID_NDK_VERSION: "27.2.12479018"
       ANDROID_PLATFORM: "android-28"
-      QT_HOST_ROOT: "${{ runner.temp }}/Qt/6.8.3/gcc_64"
-      QT_ANDROID_ROOT: "${{ runner.temp }}/Qt/6.8.3/android_arm64_v8a"
+      QT_HOST_ROOT: "${{ github.workspace }}/.qt/Qt/6.8.3/gcc_64"
+      QT_ANDROID_ROOT: "${{ github.workspace }}/.qt/Qt/6.8.3/android_arm64_v8a"
 
     steps:
       - name: Checkout source and nested submodules
@@ -71,7 +71,7 @@ jobs:
           host: linux
           target: desktop
           arch: linux_gcc_64
-          dir: "${{ runner.temp }}/Qt"
+          dir: "${{ github.workspace }}/.qt/Qt"
           modules: "qt5compat qtshadertools qtnetworkauth"
 
       - name: Install Qt Android arm64 kit
@@ -81,7 +81,7 @@ jobs:
           host: all_os
           target: android
           arch: android_arm64_v8a
-          dir: "${{ runner.temp }}/Qt"
+          dir: "${{ github.workspace }}/.qt/Qt"
           modules: "qt5compat qtshadertools qtnetworkauth"
 
       - name: Install native build tools
