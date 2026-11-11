@@ -109,24 +109,8 @@ jobs:
             echo "::error::Missing Qt QML plugin registry: $qml_plugins_file"
             exit 1
           fi
-          python3 - "$qml_plugins_file" <<'PY'
-          from pathlib import Path
-          import sys
-          path = Path(sys.argv[1])
-          original = path.read_text()
-          filtered = "\n".join(
-              line for line in original.splitlines()
-              if "Qt6QmlAssetDownloaderpluginConfig.cmake" not in line
-          ) + "\n"
-          if filtered == original:
-              raise SystemExit("Qt QML AssetDownloader plugin entry was not found; refusing to modify the kit blindly")
-          path.write_text(filtered)
-          print("Disabled optional QML AssetDownloader plugin: its host-only examples helper is not part of the Android runtime")
-          PY
-          if grep -q "Qt6QmlAssetDownloaderpluginConfig.cmake" "$qml_plugins_file"; then
-            echo "::error::QML AssetDownloader plugin entry remains active"
-            exit 1
-          fi
+          echo "Qt QML plugin registry found; preserving the vendor-generated file unchanged."
+          grep -n -i "assetdownloader\|qmlmodels\|qmlmeta" "$qml_plugins_file" || true
           for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
             config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
             if [ ! -f "$config" ]; then
@@ -168,9 +152,7 @@ jobs:
             -DQt6Qml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml" \
             -DQt6QmlIntegration_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlIntegration" \
             -DQt6QmlMeta_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlMeta" \
-            -DQt6QmlAssetDownloader_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlAssetDownloader" \
             -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
-            -DQt6ExamplesAssetDownloaderPrivate_DIR="$QT_EXAMPLES_ASSET_DOWNLOADER_DIR" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
             -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
             -DQt6QuickWidgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickWidgets" \
