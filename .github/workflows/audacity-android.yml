@@ -104,6 +104,7 @@ jobs:
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
             -DCMAKE_ANDROID_NDK="$ANDROID_NDK_ROOT" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
             -DQT_HOST_PATH="$QT_HOST_ROOT" \
             -DAU4_BUILD_CONFIGURATION=app \
             -DAU4_BUILD_MODE=release \
