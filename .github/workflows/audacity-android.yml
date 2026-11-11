@@ -82,7 +82,7 @@ jobs:
           target: android
           arch: android_arm64_v8a
           dir: "${{ github.workspace }}/.qt/Qt"
-          modules: "qtdeclarative qt5compat qtshadertools qtnetworkauth"
+          modules: "qt5compat qtshadertools qtnetworkauth"
 
       - name: Verify Qt Android and host CMake components
         shell: bash
