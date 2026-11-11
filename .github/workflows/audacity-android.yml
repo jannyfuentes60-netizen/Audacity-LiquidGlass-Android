@@ -88,7 +88,7 @@ jobs:
         shell: bash
         run: |
           echo "Android Qt root: $QT_ANDROID_ROOT"
-          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network; do
+          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
             config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
             if [ ! -f "$config" ]; then
               echo "::error::Missing $config"
@@ -127,6 +127,15 @@ jobs:
             -DQt6Widgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Widgets" \
             -DQt6Network_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Network" \
             -DQt6Qml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml" \
+            -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
+            -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
+            -DQt6QuickWidgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickWidgets" \
+            -DQt6Xml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Xml" \
+            -DQt6Svg_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Svg" \
+            -DQt6ShaderTools_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6ShaderTools" \
+            -DQt6Core5Compat_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Core5Compat" \
+            -DQt6NetworkAuth_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6NetworkAuth" \
+            -DQt6PrintSupport_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6PrintSupport" \
             -DAU4_BUILD_CONFIGURATION=app \
             -DAU4_BUILD_MODE=release \
             -DMUSE_COMPILE_USE_CCACHE=OFF \
