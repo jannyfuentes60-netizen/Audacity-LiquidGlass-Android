@@ -126,6 +126,7 @@ jobs:
             -DQt6Gui_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Gui" \
             -DQt6Widgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Widgets" \
             -DQt6Network_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Network" \
+            -DQt6Qml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml" \
             -DAU4_BUILD_CONFIGURATION=app \
             -DAU4_BUILD_MODE=release \
             -DMUSE_COMPILE_USE_CCACHE=OFF \
