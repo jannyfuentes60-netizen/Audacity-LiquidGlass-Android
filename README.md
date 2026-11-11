@@ -1,56 +1,46 @@
-# Audacity Liquid Glass Android
+# Audacity 4 for Android
 
-An Android-focused porting project based on **Audacity 3.7.8**, with a Flutter interface styled using **LiqKit / liqkit_ui** and a native audio-engine integration layer.
+This repository is focused on a **native Android port of the official Audacity 4 codebase**.
 
-> This repository is independent from La Chamba Audio Lab. No code or assets from that project belong here.
+## Non-negotiable direction
 
-## Project goals
+- Use the official **Audacity 4.0.2** source as the application and audio-engine foundation.
+- Preserve Audacity's original Qt interface, menus, toolbars, track view, clip editing model, effects, project handling and commands.
+- Do not recreate the editor in Flutter, HTML or a custom imitation UI.
+- Do not replace Audacity's interface with Liquid Glass. The original Audacity 4 interface is the target.
+- Make only platform adaptations required for Android: touch input, screen sizing, Android audio devices, permissions, lifecycle and file access.
+- Keep upstream code and license notices intact; document every Android-specific patch.
 
-- Use Audacity **3.7.8** as the functional reference and engine source.
-- Rebuild the application interface in Flutter; the desktop wxWidgets interface is not directly embeddable in Flutter.
-- Use `liqkit_ui` for the Liquid Glass visual system, after validating its Android rendering and performance.
-- Preserve Audacity workflows and capabilities wherever the underlying engine and Android platform permit.
-- Provide an in-app audio library backed by Android MediaStore. Ask for audio permission when needed, then list accessible audio without opening the system file browser.
-- Open media through content URIs and stream/read data as needed rather than copying every audio file into app memory.
+## Technical direction
 
-## Architecture (target)
+Audacity 4 is built on Qt. The Android project must adapt the upstream Qt/CMake application rather than wrap a desktop executable or rebuild its interface in another toolkit.
 
-- **Flutter UI:** navigation, editing workspace, tracks, toolbars, menus, dialogs, preferences and effect controls.
-- **LiqKit layer:** glass surfaces, controls, sheets, menus and motion.
-- **Android platform layer (Kotlin):** runtime permission handling, MediaStore queries, content URI access and audio-device/platform integration.
-- **Audacity engine bridge (C/C++):** a carefully scoped native interface for project, track, selection, transport, import/export and effect operations.
-- **Compatibility inventory:** a tracked list of Audacity 3.7.8 menus, commands, effects, formats and preferences, each marked for Android feasibility and implementation status.
+The official Audacity 4 build instructions currently describe desktop toolchains. Upstream does not provide an official Android build target. This port therefore requires auditing dependencies, adapting unsupported platform components, integrating Qt for Android, adapting audio I/O and validating the original application UI on-device.
 
-## Audio library and permissions
+## Milestones
 
-- Android 13 and newer: request `READ_MEDIA_AUDIO`.
-- Android 12 and older: request `READ_EXTERNAL_STORAGE` where applicable.
-- Request access only when the user first opens the library and permission is not already granted.
-- Query accessible, indexed shared audio through MediaStore; do not request broad all-files access.
-- Show permission-denied and empty-library states clearly, and support refreshing the list.
-- MediaStore does not expose every private app file or every unindexed location. A separate user-selected URI flow may be needed for those cases.
-
-## Important engineering constraints
-
-Audacity 3.7.8 is a desktop application built around wxWidgets and a large native dependency set. A Flutter Android app cannot simply run the Windows executable or reuse the desktop UI. The port must rebuild the UI and validate which engine modules and dependencies can compile and operate on Android.
-
-“Feature parity” is a goal, not a claim that every desktop feature is already portable. Each feature must be audited and tested. Android-specific interaction, audio routing, background limits, memory constraints and screen size may require adapted workflows.
-
-## Initial milestones
-
-1. Pin and audit the Audacity 3.7.8 source tree, license notices, build system and dependencies.
-2. Build a feature/portability inventory from the 3.7.8 menus, commands, effects, import/export formats and preferences.
-3. Create the Flutter Android shell and validate the selected LiqKit package on Android.
-4. Implement the MediaStore library and permission lifecycle.
-5. Define a minimal, stable C ABI/JNI bridge and prove one real engine operation end-to-end.
-6. Expand the bridge and Flutter screens incrementally, with tests for each capability.
+1. Pin the official Audacity 4.0.2 source and its submodules.
+2. Audit CMake targets and dependencies for Android compatibility.
+3. Produce a minimal Qt-for-Android build of the unmodified upstream application shell.
+4. Resolve platform blockers without replacing Audacity's UI or editing model.
+5. Integrate Android audio input/output, focus, permissions and MediaStore/document URI access.
+6. Test project open/save, import/export, transport and editing on a physical Android device.
+7. Expand verification across effects, generators, analyzers, plugins and remaining commands.
 
 ## Current status
 
-Repository bootstrap and technical validation. No claim is made yet that the Audacity engine builds on Android or that full desktop feature parity has been achieved.
+The previous Flutter/LiqKit screen was only a mock interface and did not contain the Audacity engine. It is not the target implementation and must not be presented as a working Audacity port.
 
-## References
+The Android port has **not yet been built**. No feature is marked implemented or verified until it works through the real Audacity 4 code on Android.
 
-- Audacity 3.7.8 release notes: https://www.audacityteam.org/changelog/3.7.8/
-- LiqKit Flutter package: https://pub.dev/packages/liqkit_ui
-- Android MediaStore: https://developer.android.com/training/data-storage/shared/media
+See [docs/ANDROID_PORT_PLAN.md](docs/ANDROID_PORT_PLAN.md) and [docs/PORTING_STATUS.md](docs/PORTING_STATUS.md).
+
+## Upstream references
+
+- Audacity source: https://github.com/audacity/audacity
+- Audacity 4.0.2 release: https://github.com/audacity/audacity/releases/tag/Audacity-4.0.2
+- Audacity 4 build guide: https://github.com/audacity/audacity/blob/master/BUILDING.md
+- Audacity 4.0 release notes: https://www.audacityteam.org/changelog/4.0.0/
+- Qt for Android: https://doc.qt.io/qt-6/android.html
+
+Audacity is open source under GPLv3, with third-party components carrying their own license terms. Preserve all applicable notices and comply with the upstream license when distributing modified builds.
