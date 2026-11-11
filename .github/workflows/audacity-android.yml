@@ -1,6 +1,6 @@
 name: Audacity 4 Android APK
 
-on:
+"on":
   workflow_dispatch:
   push:
     branches: [main]
