@@ -205,44 +205,60 @@ class _LibraryHomeState extends State<LibraryHome> {
   }
 
   void _showMessage(String message) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF202631),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('En desarrollo', style: TextStyle(
-                color: Color(0xFFF4F6FA),
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              )),
-              const SizedBox(height: 10),
-              Text(message, style: const TextStyle(
-                color: Color(0xFFB7C1CE),
-                fontSize: 14,
-                height: 1.45,
-              )),
-              const SizedBox(height: 18),
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text('Entendido', style: TextStyle(
-                    color: Color(0xFF8BC5FF),
-                    fontWeight: FontWeight.w700,
-                  )),
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (overlayContext) => Positioned.fill(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => entry.remove(),
+          child: ColoredBox(
+            color: const Color(0x99000000),
+            child: Center(
+              child: GestureDetector(
+                onTap: () {},
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: LiqGlassSurface(
+                    tint: LiqGlassTint.dark,
+                    borderRadius: BorderRadius.circular(24),
+                    padding: const EdgeInsets.all(22),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('En desarrollo', style: TextStyle(
+                          color: Color(0xFFF4F6FA),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        )),
+                        const SizedBox(height: 10),
+                        Text(message, style: const TextStyle(
+                          color: Color(0xFFB7C1CE),
+                          fontSize: 14,
+                          height: 1.45,
+                        )),
+                        const SizedBox(height: 18),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => entry.remove(),
+                            child: const Text('Entendido', style: TextStyle(
+                              color: Color(0xFF8BC5FF),
+                              fontWeight: FontWeight.w700,
+                            )),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
+    Overlay.of(context).insert(entry);
   }
 }
 
