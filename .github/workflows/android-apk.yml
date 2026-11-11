@@ -23,7 +23,10 @@ jobs:
           cache: true
 
       - name: Generate Android platform project
-        run: flutter create --platforms=android --org com.djfaraon --project-name audacity_liquid_glass .
+        run: |
+          flutter create --platforms=android --org com.djfaraon --project-name audacity_liquid_glass /tmp/audacity_android_scaffold
+          mkdir -p android
+          cp -R /tmp/audacity_android_scaffold/android/. android/
 
       - name: Resolve packages
         run: flutter pub get
