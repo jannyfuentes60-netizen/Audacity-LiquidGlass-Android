@@ -123,6 +123,9 @@ jobs:
             -DCMAKE_PREFIX_PATH="$QT_ANDROID_ROOT;$QT_HOST_ROOT" \
             -DQt6_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6" \
             -DQt6Core_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Core" \
+            -DQt6Gui_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Gui" \
+            -DQt6Widgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Widgets" \
+            -DQt6Network_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Network" \
             -DAU4_BUILD_CONFIGURATION=app \
             -DAU4_BUILD_MODE=release \
             -DMUSE_COMPILE_USE_CCACHE=OFF \
