@@ -1,0 +1,3 @@
+[submodule "upstream/audacity"]
+	path = upstream/audacity
+	url = https://github.com/audacity/audacity.git
