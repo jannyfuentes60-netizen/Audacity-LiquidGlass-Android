@@ -25,8 +25,8 @@ jobs:
       QT_VERSION: "6.8.3"
       ANDROID_NDK_VERSION: "27.2.12479018"
       ANDROID_PLATFORM: "android-28"
-      QT_HOST_ROOT: "${{ github.workspace }}/.qt/Qt/6.8.3/gcc_64"
-      QT_ANDROID_ROOT: "${{ github.workspace }}/.qt/Qt/6.8.3/android_arm64_v8a"
+      QT_HOST_ROOT: "${{ github.workspace }}/.qt/Qt/Qt/6.8.3/gcc_64"
+      QT_ANDROID_ROOT: "${{ github.workspace }}/.qt/Qt/Qt/6.8.3/android_arm64_v8a"
 
     steps:
       - name: Checkout source and nested submodules
