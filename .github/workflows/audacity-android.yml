@@ -73,7 +73,6 @@ jobs:
           arch: linux_gcc_64
           dir: "${{ github.workspace }}/.qt/Qt"
           modules: "all"
-          archives: "qtbase qtdeclarative qtsvg"
 
       - name: Install Qt Android arm64 kit
         uses: jurplel/install-qt-action@v4
@@ -121,7 +120,7 @@ jobs:
           fi
           echo "Qt QML plugin registry found; preserving the vendor-generated file unchanged."
           grep -n -i "assetdownloader\|qmlmodels\|qmlmeta" "$qml_plugins_file" || true
-          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6OpenGL Qt6Qml Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
+          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6OpenGL Qt6Qml Qt6Quick Qt6QuickTemplates2 Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
             config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
             if [ ! -f "$config" ]; then
               echo "::error::Missing $config"
