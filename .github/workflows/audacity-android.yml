@@ -97,24 +97,36 @@ jobs:
           echo "Found host Qt QmlIntegration package: $qml_integration_config"
           echo "Host Qt root: $QT_HOST_ROOT"
           echo "Android Qt root: $QT_ANDROID_ROOT"
-          find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f \\( -name "Qt6QmlModelsConfig.cmake" -o -name "Qt6ExamplesAssetDownloaderPrivateConfig.cmake" -o -name "Qt6QmlMetaConfig.cmake" -o -name "Qt6QmlAssetDownloaderConfig.cmake" \\) -print
-          qml_models_config="$QT_ANDROID_ROOT/lib/cmake/Qt6QmlModels/Qt6QmlModelsConfig.cmake"
-          examples_downloader_config="$QT_HOST_ROOT/lib/cmake/Qt6ExamplesAssetDownloaderPrivate/Qt6ExamplesAssetDownloaderPrivateConfig.cmake"
-          for config in "$qml_models_config" "$examples_downloader_config"; do
-            if [ ! -f "$config" ]; then
-              echo "::error::Missing required Qt dependency config: $config"
-              exit 1
-            fi
-          done
-          echo "QT_QML_MODELS_DIR=$QT_ANDROID_ROOT/lib/cmake/Qt6QmlModels" >> "$GITHUB_ENV"
-          echo "QT_EXAMPLES_ASSET_DOWNLOADER_DIR=$QT_HOST_ROOT/lib/cmake/Qt6ExamplesAssetDownloaderPrivate" >> "$GITHUB_ENV"
-          for component in Qt6QmlMeta Qt6QmlAssetDownloader; do
-            config="$QT_HOST_ROOT/lib/cmake/$component/${component}Config.cmake"
-            if [ ! -f "$config" ]; then
-              echo "::error::Missing host Qt component $config"
-              exit 1
-            fi
-          done
+          qml_models_config="$(find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f -name Qt6QmlModelsConfig.cmake -print -quit)"
+          if [ -z "$qml_models_config" ]; then
+            echo "::error::Qt6QmlMeta dependency Qt6QmlModelsConfig.cmake is absent from both Qt kits"
+            find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -iname '*QmlModel*' -print || true
+            exit 1
+          fi
+          echo "QT_QML_MODELS_DIR=$(dirname "$qml_models_config")" >> "$GITHUB_ENV"
+          qml_plugins_file="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake"
+          if [ ! -f "$qml_plugins_file" ]; then
+            echo "::error::Missing Qt QML plugin registry: $qml_plugins_file"
+            exit 1
+          fi
+          python3 - "$qml_plugins_file" <<'PY'
+          from pathlib import Path
+          import sys
+          path = Path(sys.argv[1])
+          original = path.read_text()
+          filtered = "\\n".join(
+              line for line in original.splitlines()
+              if "Qt6QmlAssetDownloaderpluginConfig.cmake" not in line
+          ) + "\\n"
+          if filtered == original:
+              raise SystemExit("Qt QML AssetDownloader plugin entry was not found; refusing to modify the kit blindly")
+          path.write_text(filtered)
+          print("Disabled optional QML AssetDownloader plugin: its host-only examples helper is not part of the Android runtime")
+          PY
+          if grep -q "Qt6QmlAssetDownloaderpluginConfig.cmake" "$qml_plugins_file"; then
+            echo "::error::QML AssetDownloader plugin entry remains active"
+            exit 1
+          fi
           for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Qml Qt6Quick Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
             config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
             if [ ! -f "$config" ]; then
