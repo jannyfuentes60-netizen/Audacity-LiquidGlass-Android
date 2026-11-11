@@ -114,10 +114,10 @@ jobs:
           import sys
           path = Path(sys.argv[1])
           original = path.read_text()
-          filtered = "\\n".join(
+          filtered = "\n".join(
               line for line in original.splitlines()
               if "Qt6QmlAssetDownloaderpluginConfig.cmake" not in line
-          ) + "\\n"
+          ) + "\n"
           if filtered == original:
               raise SystemExit("Qt QML AssetDownloader plugin entry was not found; refusing to modify the kit blindly")
           path.write_text(filtered)
