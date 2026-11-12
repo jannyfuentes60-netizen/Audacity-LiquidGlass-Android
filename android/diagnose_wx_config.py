@@ -67,10 +67,14 @@ history = run(["-E", "-dD"])
 if history.returncode:
     print(history.stderr[-12000:])
     raise SystemExit("Preprocessor macro-history inspection failed")
-print("Feature macro definition history (in preprocessing order):")
+print("Feature macro definition history with source locations:")
+current_location = "<unknown>"
 for line in history.stdout.splitlines():
-    if re.match(r"^#\s*(?:define|undef)\s+wxUSE_(?:CONFIG|INTL|FILE|TEXTBUFFER|TEXTFILE)\b", line):
-        print(f"  {line}")
+    marker = re.match(r'^#\s+\d+\s+"([^"]+)"', line)
+    if marker:
+        current_location = marker.group(1)
+    elif re.match(r"^#\s*(?:define|undef)\s+wxUSE_(?:CONFIG|INTL|FILE|TEXTBUFFER|TEXTFILE)\\b", line):
+        print(f"  {current_location}: {line}")
 
 trace = run(["-E", "-H", "-o", "/dev/null"])
 if trace.returncode:
