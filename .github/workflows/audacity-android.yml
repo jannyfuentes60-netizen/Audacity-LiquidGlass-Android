@@ -218,11 +218,15 @@ jobs:
             -DQt6ShaderTools_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6ShaderTools" \
             -DQt6Core5Compat_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Core5Compat" \
             -DQt6NetworkAuth_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6NetworkAuth" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DAU4_BUILD_CONFIGURATION=app \
             -DAU4_BUILD_MODE=release \
             -DMUSE_COMPILE_USE_CCACHE=OFF \
             -DMUSE_COMPILE_USE_UNITY=OFF \
             -DMUSE_ENABLE_UNIT_TESTS=OFF
+
+      - name: Diagnose wxWidgets feature macros in the failing Audacity translation unit
+        run: python3 android/diagnose_wx_config.py
 
       - name: Build Audacity Android executable and APK
         run: cmake --build build/android-arm64 --target apk --parallel 2
