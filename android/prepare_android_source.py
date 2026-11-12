@@ -226,11 +226,13 @@ edit(
             message(FATAL_ERROR "PortAudio CMakeLists.txt was not found")
         endif()
         file(READ "${_portaudio_cmake}" _portaudio_text)
+        # Bracket arguments preserve the literal CMake variable in the
+        # upstream source; normal quoted arguments expand it in this scope.
         string(REPLACE
-            "SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m pthread)"
-            "SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m)"
+            [=[SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m pthread)]=]
+            [=[SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m)]=]
             _portaudio_text "${_portaudio_text}")
-        if(_portaudio_text MATCHES "PA_LIBRARY_DEPENDENCIES.*m pthread")
+        if(_portaudio_text MATCHES "PA_LIBRARY_DEPENDENCIES[^\n]*pthread")
             message(FATAL_ERROR "Could not remove desktop libpthread dependency from PortAudio")
         endif()
         file(WRITE "${_portaudio_cmake}" "${_portaudio_text}")
