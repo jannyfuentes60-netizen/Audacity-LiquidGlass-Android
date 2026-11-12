@@ -97,6 +97,14 @@ jobs:
             exit 1
           fi
           echo "Found host Qt QmlIntegration package: $qml_integration_config"
+          qt_test_config="$QT_HOST_ROOT/lib/cmake/Qt6Test/Qt6TestConfig.cmake"
+          if [ ! -f "$qt_test_config" ]; then
+            echo "::error::Missing host Qt Test CMake package: $qt_test_config"
+            find "$QT_HOST_ROOT/lib/cmake" -maxdepth 3 -iname '*Qt6Test*config.cmake' -print || true
+            exit 1
+          fi
+          echo "QT_TEST_DIR=$(dirname "$qt_test_config")" >> "$GITHUB_ENV"
+          echo "Found host Qt Test package: $qt_test_config"
           echo "Host Qt root: $QT_HOST_ROOT"
           echo "Android Qt root: $QT_ANDROID_ROOT"
           qml_models_config="$(find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f -name Qt6QmlModelsConfig.cmake -print -quit)"
@@ -167,6 +175,7 @@ jobs:
             -DQt6QmlMeta_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlMeta" \
             -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
             -DQt6QmlWorkerScript_DIR="$QT_QML_WORKERSCRIPT_DIR" \
+            -DQt6Test_DIR="$QT_TEST_DIR" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
             -DQt6QuickTemplates2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickTemplates2" \
             -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
