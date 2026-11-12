@@ -266,6 +266,35 @@ edit(
         elseif(NOT _wx_filename_text MATCHES "GetPathSeparators\\(format\\)\\[0\\]")
             message(FATAL_ERROR "[wxwidgets] unexpected wx/filename.h path separator expression")
         endif()
+
+        # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,
+        # but wxUILocale is declared only when wxUSE_INTL=1. Android's
+        # wxBase configuration disables intl, so keep the English fallback
+        # and compile the locale-specific call only when intl is enabled.
+        set(_wx_datetime_source "${SRC}/src/common/datetime.cpp")
+        if(NOT EXISTS "${_wx_datetime_source}")
+            message(FATAL_ERROR "[wxwidgets] src/common/datetime.cpp was not found")
+        endif()
+        file(READ "${_wx_datetime_source}" _wx_datetime_text)
+        string(REPLACE
+            [=[wxString name = wxUILocale::GetCurrent().GetMonthName(month, flags);]=]
+            [=[wxString name;
+#if wxUSE_INTL
+    name = wxUILocale::GetCurrent().GetMonthName(month, flags);
+#endif]=]
+            _wx_datetime_text "${_wx_datetime_text}")
+        string(REPLACE
+            [=[wxString name = wxUILocale::GetCurrent().GetWeekDayName(wday, flags);]=]
+            [=[wxString name;
+#if wxUSE_INTL
+    name = wxUILocale::GetCurrent().GetWeekDayName(wday, flags);
+#endif]=]
+            _wx_datetime_text "${_wx_datetime_text}")
+        if(_wx_datetime_text MATCHES "wxString name = wxUILocale::GetCurrent")
+            message(FATAL_ERROR "[wxwidgets] failed to guard wxUILocale calls for wxUSE_INTL")
+        endif()
+        file(WRITE "${_wx_datetime_source}" "${_wx_datetime_text}")
+        message(STATUS "[wxwidgets] guarded wxUILocale calls when wxUSE_INTL is disabled")
     endif()
 
     # Apply patches
