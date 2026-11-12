@@ -534,8 +534,23 @@ edit(
 
 edit(
     "au3/libraries/au3-strings/Languages.cpp",
-    r'''#include <wx/filename.h>
-#include <wx/intl.h>''',
+    r'''#include "Languages.h"
+#include <memory>''',
+    r'''#include <wx/defs.h>
+#if defined(__ANDROID__)
+    // Languages.h includes Internat.h, which can transitively include wx/intl.h.
+    // Set the configured Android intl feature before any Audacity header can
+    // cause wx/intl.h to be included and its feature-guarded declarations skipped.
+    #undef wxUSE_INTL
+    #define wxUSE_INTL 1
+#endif
+#include "Languages.h"
+#include <memory>''',
+    "enable wxLocale declarations before Languages.h can include wx/intl.h",
+)
+
+edit(
+    "au3/libraries/au3-strings/Languages.cpp",
     r'''#include <wx/filename.h>
 #if defined(__ANDROID__)
     // wxWidgets is built with wxUSE_INTL=1 for this Android target.
@@ -546,7 +561,9 @@ edit(
     #define wxUSE_INTL 1
 #endif
 #include <wx/intl.h>''',
-    "expose wxLocale declarations to Audacity Android language manager",
+    r'''#include <wx/filename.h>
+#include <wx/intl.h>''',
+    "remove late intl override after moving it ahead of Languages.h",
 )
 
 print("Android source overlay applied.")
