@@ -350,6 +350,20 @@ edit(
             [=[#define wxSIZE_T_IS_UINT 1]=]
             [=[/* wxSIZE_T_IS_UINT is false for arm64-v8a. */]=]
             _wx_android_config_text "${_wx_android_config_text}")
+
+        # wxWidgets' Android platform header hardcodes wxUSE_INTL=0.
+        # The CMake cache option cannot override this platform macro, so
+        # enable it in the actual Android config header before setup.h is
+        # generated. Audacity's Languages.cpp requires wxLocale and
+        # wxLanguageInfo, and wxBase provides these without desktop GUI.
+        string(REPLACE
+            [=[#define wxUSE_INTL 0]=]
+            [=[#define wxUSE_INTL 1]=]
+            _wx_android_config_text "${_wx_android_config_text}")
+        if(NOT _wx_android_config_text MATCHES "#define wxUSE_INTL 1")
+            message(FATAL_ERROR "[wxwidgets] failed to enable wxUSE_INTL in Android config header")
+        endif()
+
         if(_wx_android_config_text MATCHES "#define SIZEOF_LONG 4"
            OR _wx_android_config_text MATCHES "#define SIZEOF_SIZE_T 4"
            OR _wx_android_config_text MATCHES "#define SIZEOF_VOID_P 4"
