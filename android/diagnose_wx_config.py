@@ -70,7 +70,7 @@ has_declaration = bool(re.search(
 ))
 print(f"wxFileConfig declaration visible: {'YES' if has_declaration else 'NO'}")
 
-trace = run(["-E", "-H"])
+trace = run(["-E", "-H", "-o", "/dev/null"])
 headers = [
     line.strip() for line in trace.stderr.splitlines()
     if "wx/setup.h" in line or "wx/fileconf.h" in line
