@@ -215,6 +215,19 @@ set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF)''',
 
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
+    r'''    if(os STREQUAL "windows" OR os STREQUAL "macos")
+        return()
+    endif()''',
+    r'''    # Android shared libraries must keep their platform-native loader
+    # metadata. Do not run the Linux patchelf/RPATH rewrite on Android.
+    if(os STREQUAL "windows" OR os STREQUAL "macos" OR os STREQUAL "android")
+        return()
+    endif()''',
+    "skip desktop ELF RPATH rewriting for Android dependencies",
+)
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
     r'''    # Apply patches
     foreach(_patch ${DEP_PATCHES})''',
     r'''    # Android's bionic libc provides pthread symbols directly; unlike
