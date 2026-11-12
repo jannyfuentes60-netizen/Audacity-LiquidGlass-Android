@@ -574,32 +574,32 @@ edit(
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
     r'''        # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,''',
-    r'''        # wxWidgets disables wxUSE_CONFIG for generic Android builds, but
-        # Audacity still compiles wx-based shared components that use
-        # wxFileConfig. Remove only that unsupported-feature guard before
-        # wxWidgets itself is configured and built, so wxBase exports both
-        # the declaration and implementation consistently.
+    r'''        # Audacity's Qt application still compiles shared wx components that
+        # require wxFileConfig and wx internationalization declarations.
+        # wxWidgets disables these two features for non-Qt Android builds;
+        # enable them in chkconf.h before configuring and compiling wxBase.
         set(_wx_android_chkconf "${SRC}/include/wx/android/chkconf.h")
         if(NOT EXISTS "${_wx_android_chkconf}")
             message(FATAL_ERROR "[wxwidgets] Android chkconf.h was not found")
         endif()
         file(READ "${_wx_android_chkconf}" _wx_android_chkconf_text)
-        set(_wx_config_disable "#undef wxUSE_CONFIG\\n#define wxUSE_CONFIG 0\\n")
-        string(FIND "${_wx_android_chkconf_text}" "${_wx_config_disable}" _wx_config_disable_pos)
-        if(_wx_config_disable_pos EQUAL -1)
-            if(NOT _wx_android_chkconf_text MATCHES "Audacity still compiles wx-based shared components")
-                message(FATAL_ERROR "[wxwidgets] expected wxUSE_CONFIG Android disable block was not found")
-            endif()
-        else()
-            string(REPLACE "${_wx_config_disable}"
-                "// Audacity still compiles wx-based shared components; keep wxFileConfig enabled.\\n"
-                _wx_android_chkconf_text "${_wx_android_chkconf_text}")
-            file(WRITE "${_wx_android_chkconf}" "${_wx_android_chkconf_text}")
+        string(REGEX REPLACE
+            "#undef wxUSE_CONFIG[ \\t]*[\\r\\n]+#define wxUSE_CONFIG 0"
+            "# wxUSE_CONFIG remains enabled for Audacity Qt components"
+            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        string(REGEX REPLACE
+            "#undef wxUSE_INTL[ \\t]*[\\r\\n]+#define wxUSE_INTL 0"
+            "# wxUSE_INTL remains enabled for Audacity Qt components"
+            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        if(_wx_android_chkconf_text MATCHES "#define wxUSE_CONFIG 0"
+           OR _wx_android_chkconf_text MATCHES "#define wxUSE_INTL 0")
+            message(FATAL_ERROR "[wxwidgets] Android chkconf.h still disables CONFIG or INTL")
         endif()
-        message(STATUS "[wxwidgets] enabled wxFileConfig before compiling wxBase")
+        file(WRITE "${_wx_android_chkconf}" "${_wx_android_chkconf_text}")
+        message(STATUS "[wxwidgets] kept wxUSE_CONFIG and wxUSE_INTL enabled for Audacity Qt components")
 
         # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,''',
-    "enable wxFileConfig before wxWidgets is compiled",
+    "enable wx CONFIG and INTL features before building wxBase",
 )
 
 print("Android source overlay applied.")
