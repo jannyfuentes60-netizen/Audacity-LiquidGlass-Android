@@ -277,18 +277,26 @@ edit(
             message(FATAL_ERROR "[wxwidgets] Android config header was not found")
         endif()
         file(READ "${_wx_android_config}" _wx_android_config_text)
-        foreach(_size_macro SIZEOF_LONG SIZEOF_SIZE_T SIZEOF_VOID_P)
-            string(REGEX REPLACE
-                "(#define ${_size_macro})[ \t]+4"
-                "\\1 8"
-                _wx_android_config_text "${_wx_android_config_text}")
-        endforeach()
-        string(REGEX REPLACE
-            "(^|\\n)[ \t]*#define wxSIZE_T_IS_UINT[ \t]+1"
-            "\\1/* wxSIZE_T_IS_UINT is false for arm64-v8a. */"
+        string(REPLACE
+            [=[#define SIZEOF_LONG 4]=]
+            [=[#define SIZEOF_LONG 8]=]
             _wx_android_config_text "${_wx_android_config_text}")
-        if(_wx_android_config_text MATCHES "#define SIZEOF_(LONG|SIZE_T|VOID_P)[ \t]+4"
-           OR _wx_android_config_text MATCHES "#define wxSIZE_T_IS_UINT")
+        string(REPLACE
+            [=[#define SIZEOF_SIZE_T 4]=]
+            [=[#define SIZEOF_SIZE_T 8]=]
+            _wx_android_config_text "${_wx_android_config_text}")
+        string(REPLACE
+            [=[#define SIZEOF_VOID_P 4]=]
+            [=[#define SIZEOF_VOID_P 8]=]
+            _wx_android_config_text "${_wx_android_config_text}")
+        string(REPLACE
+            [=[#define wxSIZE_T_IS_UINT 1]=]
+            [=[/* wxSIZE_T_IS_UINT is false for arm64-v8a. */]=]
+            _wx_android_config_text "${_wx_android_config_text}")
+        if(_wx_android_config_text MATCHES "#define SIZEOF_LONG 4"
+           OR _wx_android_config_text MATCHES "#define SIZEOF_SIZE_T 4"
+           OR _wx_android_config_text MATCHES "#define SIZEOF_VOID_P 4"
+           OR _wx_android_config_text MATCHES "#define wxSIZE_T_IS_UINT 1")
             message(FATAL_ERROR "[wxwidgets] failed to correct 32-bit Android ABI macros for arm64")
         endif()
         file(WRITE "${_wx_android_config}" "${_wx_android_config_text}")
