@@ -10,7 +10,7 @@ if not header.is_file():
 
 text = header.read_text(encoding="utf-8")
 disabled = "#undef wxUSE_CONFIG\n#define wxUSE_CONFIG 0\n"
-marker = "// Audacity's Qt application still compiles wx-based shared components.\n"
+marker = "// Audacity still compiles wx-based shared components; keep wxFileConfig enabled.\n"
 if marker in text:
     print("wxUSE_CONFIG Android override is already applied.")
 else:
