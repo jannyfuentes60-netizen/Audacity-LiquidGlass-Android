@@ -280,11 +280,11 @@ edit(
             file(READ "${_wx_cpp_source}" _wx_cpp_text)
             string(REGEX REPLACE
                 "\\[([0-9]+)u\\]"
-                "[\\\\1]"
+                "[\\1]"
                 _wx_cpp_text "${_wx_cpp_text}")
             string(REGEX REPLACE
                 "\\[\\(unsigned int\\)[ \t]*([A-Za-z_][A-Za-z0-9_]*)\\]"
-                "[static_cast<int>(\\\\1)]"
+                "[static_cast<int>(\\1)]"
                 _wx_cpp_text "${_wx_cpp_text}")
             file(WRITE "${_wx_cpp_source}" "${_wx_cpp_text}")
         endforeach()
