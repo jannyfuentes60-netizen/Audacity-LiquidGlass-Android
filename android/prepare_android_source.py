@@ -238,7 +238,7 @@ edit(
         endif()
         file(READ "${_wx_gzlib}" _wx_gzlib_text)
         if(NOT _wx_gzlib_text MATCHES "#include <unistd.h>")
-            string(PREPEND _wx_gzlib_text "#include <unistd.h>\\n")
+            string(PREPEND _wx_gzlib_text "#include <unistd.h>\n")
             file(WRITE "${_wx_gzlib}" "${_wx_gzlib_text}")
         endif()
         message(STATUS "[wxwidgets] added Android POSIX declaration for lseek")
