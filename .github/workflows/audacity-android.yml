@@ -84,7 +84,6 @@ jobs:
           arch: android_arm64_v8a
           dir: "${{ github.workspace }}/.qt/Qt"
           modules: "all"
-          archives: "qtbase qtdeclarative qtsvg"
 
       - name: Verify Qt Android and host CMake components
         shell: bash
@@ -107,6 +106,14 @@ jobs:
           echo "Found host Qt Test package: $qt_test_config"
           echo "Host Qt root: $QT_HOST_ROOT"
           echo "Android Qt root: $QT_ANDROID_ROOT"
+          gui_private_config="$QT_ANDROID_ROOT/lib/cmake/Qt6GuiPrivate/Qt6GuiPrivateConfig.cmake"
+          if [ ! -f "$gui_private_config" ]; then
+            echo "::error::Qt Android kit is missing Qt6GuiPrivate. Install the complete qtbase archive set."
+            find "$QT_ANDROID_ROOT/lib/cmake" -maxdepth 3 -iname '*GuiPrivate*config.cmake' -print || true
+            exit 1
+          fi
+          echo "QT_GUI_PRIVATE_DIR=$(dirname "$gui_private_config")" >> "$GITHUB_ENV"
+          echo "Found Qt GuiPrivate package: $gui_private_config"
           qml_models_config="$(find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f -name Qt6QmlModelsConfig.cmake -print -quit)"
           if [ -z "$qml_models_config" ]; then
             echo "::error::Qt6QmlMeta dependency Qt6QmlModelsConfig.cmake is absent from both Qt kits"
@@ -176,6 +183,7 @@ jobs:
             -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
             -DQt6QmlWorkerScript_DIR="$QT_QML_WORKERSCRIPT_DIR" \
             -DQt6Test_DIR="$QT_TEST_DIR" \
+            -DQt6GuiPrivate_DIR="$QT_GUI_PRIVATE_DIR" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
             -DQt6QuickTemplates2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickTemplates2" \
             -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
