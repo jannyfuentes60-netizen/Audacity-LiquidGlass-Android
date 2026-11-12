@@ -527,12 +527,33 @@ edit(
         file(MAKE_DIRECTORY "${_wx_installed_setup_dir}")
         configure_file("${_wx_generated_setup}" "${_wx_installed_setup}" COPYONLY)
         file(READ "${_wx_installed_setup}" _wx_installed_setup_text)
-        if(NOT _wx_installed_setup_text MATCHES "#define wxUSE_INTL 1")
-            message(FATAL_ERROR "[wxwidgets] installed setup.h still does not enable wxUSE_INTL")
-        endif()
-        message(STATUS "[wxwidgets] synchronized installed base-unicode setup.h with wxUSE_INTL=1")
+        foreach(_wx_macro wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+            if(NOT _wx_installed_setup_text MATCHES "#define ${_wx_macro} 1")
+                message(FATAL_ERROR "[wxwidgets] installed setup.h does not enable ${_wx_macro}; this is the header Audacity will compile against")
+            endif()
+        endforeach()
+        message(STATUS "[wxwidgets] verified installed base-unicode setup.h enables INTL, FILE, TEXTBUFFER, TEXTFILE and CONFIG")
     endif()''',
     "synchronize the exact installed wxWidgets setup.h consumed by Audacity",
+)
+
+
+edit(
+    "au3/libraries/au3-components/EffectAutomationParameters.h",
+    r'''#include <wx/cmdline.h> // for wxCmdLineParser::ConvertStringToArgs
+#include <wx/fileconf.h> // to inherit''',
+    r'''#include <wx/cmdline.h> // for wxCmdLineParser::ConvertStringToArgs
+#if defined(__ANDROID__)
+    // wxFileConfig is guarded by wxUSE_CONFIG in wx/fileconf.h.
+    // The Android base build's generated setup enables CONFIG and its
+    // implementation is built, but wx/defs.h may have been included earlier
+    // through another header with the feature macro unset. Restore the
+    // verified build setting immediately before the guarded declaration.
+    #undef wxUSE_CONFIG
+    #define wxUSE_CONFIG 1
+#endif
+#include <wx/fileconf.h> // to inherit''',
+    "expose wxFileConfig declaration using the verified Android wx config feature",
 )
 
 
