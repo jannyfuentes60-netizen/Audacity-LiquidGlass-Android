@@ -73,7 +73,7 @@ for line in history.stdout.splitlines():
     marker = re.match(r'^#\s+\d+\s+"([^"]+)"', line)
     if marker:
         current_location = marker.group(1)
-    elif re.match(r"^#\s*(?:define|undef)\s+wxUSE_(?:CONFIG|INTL|FILE|TEXTBUFFER|TEXTFILE)\\b", line):
+    elif re.match(r"^#\s*(?:define|undef)\s+wxUSE_(?:CONFIG|INTL|FILE|TEXTBUFFER|TEXTFILE)\b", line):
         print(f"  {current_location}: {line}")
 
 trace = run(["-E", "-H", "-o", "/dev/null"])
