@@ -500,4 +500,35 @@ edit(
     "pass installed Ogg library and headers to Vorbis FindOgg",
 )
 
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)''',
+    r'''    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)
+
+    # The generated setup.h is correct in wxWidgets' build tree, but the
+    # dependency install step can leave a different setup.h in the prefix.
+    # Audacity consumes the installed prefix, so synchronize that exact file.
+    if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        set(_wx_generated_setup "${BUILD}/lib/wx/include/base-unicode-3.2/wx/setup.h")
+        set(_wx_installed_setup "${CMAKE_BINARY_DIR}/_deps/wxwidgets/lib/wx/include/base-unicode-3.2/wx/setup.h")
+        if(NOT EXISTS "${_wx_generated_setup}")
+            message(FATAL_ERROR "[wxwidgets] generated base-unicode setup.h is missing: ${_wx_generated_setup}")
+        endif()
+        file(READ "${_wx_generated_setup}" _wx_generated_setup_text)
+        if(NOT _wx_generated_setup_text MATCHES "#define wxUSE_INTL 1")
+            message(FATAL_ERROR "[wxwidgets] generated build-tree setup.h does not enable wxUSE_INTL")
+        endif()
+        get_filename_component(_wx_installed_setup_dir "${_wx_installed_setup}" DIRECTORY)
+        file(MAKE_DIRECTORY "${_wx_installed_setup_dir}")
+        configure_file("${_wx_generated_setup}" "${_wx_installed_setup}" COPYONLY)
+        file(READ "${_wx_installed_setup}" _wx_installed_setup_text)
+        if(NOT _wx_installed_setup_text MATCHES "#define wxUSE_INTL 1")
+            message(FATAL_ERROR "[wxwidgets] installed setup.h still does not enable wxUSE_INTL")
+        endif()
+        message(STATUS "[wxwidgets] synchronized installed base-unicode setup.h with wxUSE_INTL=1")
+    endif()''',
+    "synchronize the exact installed wxWidgets setup.h consumed by Audacity",
+)
+
 print("Android source overlay applied.")
