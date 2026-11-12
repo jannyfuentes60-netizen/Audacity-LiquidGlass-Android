@@ -215,6 +215,35 @@ set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF)''',
 
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
+    r'''    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
+    r'''    # Android's bionic libc provides pthread symbols directly; unlike
+    # desktop Linux it has no separate libpthread.so. PortAudio's upstream
+    # CMakeLists unconditionally adds pthread to target link dependencies.
+    if(BD_NAME STREQUAL "portaudio" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        set(_portaudio_cmake "${SRC}/CMakeLists.txt")
+        if(NOT EXISTS "${_portaudio_cmake}")
+            message(FATAL_ERROR "PortAudio CMakeLists.txt was not found")
+        endif()
+        file(READ "${_portaudio_cmake}" _portaudio_text)
+        string(REPLACE
+            "SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m pthread)"
+            "SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m)"
+            _portaudio_text "${_portaudio_text}")
+        if(_portaudio_text MATCHES "PA_LIBRARY_DEPENDENCIES.*m pthread")
+            message(FATAL_ERROR "Could not remove desktop libpthread dependency from PortAudio")
+        endif()
+        file(WRITE "${_portaudio_cmake}" "${_portaudio_text}")
+        message(STATUS "[portaudio] removed separate libpthread dependency for Android")
+    endif()
+
+    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
+    "remove unavailable separate pthread library from Android PortAudio link",
+)
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
     '    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")',
     '''    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")
 
