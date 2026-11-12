@@ -8,6 +8,12 @@ name: Audacity 4 Android APK
       - "android/**"
       - ".github/workflows/audacity-android.yml"
       - "upstream/audacity"
+  pull_request:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/audacity-android.yml"
+      - "upstream/audacity"
 
 permissions:
   contents: read
