@@ -248,7 +248,7 @@ edit(
     # Force this at the final nested configure boundary, rather than relying
     # on a platform override whose BD_OS may differ across manifest versions.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_GUI=OFF)
+        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_CONFIG=ON -DwxUSE_GUI=OFF)
         message(STATUS "[wxwidgets] forcing wxUSE_INTL=ON for Android")
     endif()
 
@@ -278,11 +278,17 @@ edit(
             if(_wx_setup_text MATCHES "#define wxUSE_INTL 1")
                 set(_wx_intl_setup_found TRUE)
             endif()
+            if(_wx_setup_text MATCHES "#define wxUSE_CONFIG 1")
+                set(_wx_config_setup_found TRUE)
+            endif()
         endforeach()
         if(NOT _wx_intl_setup_found)
             message(FATAL_ERROR "[wxwidgets] CMake cache says wxUSE_INTL=ON but generated wx/setup.h does not")
         endif()
-        message(STATUS "[wxwidgets] verified wxUSE_INTL=1 in generated wx/setup.h")
+        if(NOT _wx_config_setup_found)
+            message(FATAL_ERROR "[wxwidgets] CMake cache says wxUSE_CONFIG=ON but generated wx/setup.h does not")
+        endif()
+        message(STATUS "[wxwidgets] verified wxUSE_INTL=1 and wxUSE_CONFIG=1 in generated wx/setup.h")
     endif()
 
     _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)''',
