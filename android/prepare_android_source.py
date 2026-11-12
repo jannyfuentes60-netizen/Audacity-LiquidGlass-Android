@@ -531,4 +531,22 @@ edit(
     "synchronize the exact installed wxWidgets setup.h consumed by Audacity",
 )
 
+
+edit(
+    "au3/libraries/au3-strings/Languages.cpp",
+    r'''#include <wx/filename.h>
+#include <wx/intl.h>''',
+    r'''#include <wx/filename.h>
+#if defined(__ANDROID__)
+    // wxWidgets is built with wxUSE_INTL=1 for this Android target.
+    // Some wx headers included earlier by Audacity can establish the
+    // feature macro before wx/intl.h is reached; restore the configured
+    // value immediately before the guarded declarations are included.
+    #undef wxUSE_INTL
+    #define wxUSE_INTL 1
+#endif
+#include <wx/intl.h>''',
+    "expose wxLocale declarations to Audacity Android language manager",
+)
+
 print("Android source overlay applied.")
