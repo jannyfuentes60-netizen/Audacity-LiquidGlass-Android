@@ -228,6 +228,8 @@ edit(
 
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
+    r'''    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
     r'''    # wxWidgets bundles zlib. Its gzlib.c uses lseek() on POSIX, but
     # the bundled source does not include unistd.h for this Android build.
     # Patch only the extracted wxWidgets copy, leaving upstream archives intact.
@@ -238,7 +240,7 @@ edit(
         endif()
         file(READ "${_wx_gzlib}" _wx_gzlib_text)
         if(NOT _wx_gzlib_text MATCHES "#include <unistd.h>")
-            string(PREPEND _wx_gzlib_text "#include <unistd.h>\n")
+            string(PREPEND _wx_gzlib_text "#include <unistd.h>\\n")
             file(WRITE "${_wx_gzlib}" "${_wx_gzlib_text}")
         endif()
         message(STATUS "[wxwidgets] added Android POSIX declaration for lseek")
@@ -246,22 +248,26 @@ edit(
 
     # Apply patches
     foreach(_patch ${DEP_PATCHES})''',
-    r'''    # Android's bionic libc provides pthread symbols directly; unlike
-    # desktop Linux it has no separate libpthread.so. PortAudio's upstream
-    # CMakeLists unconditionally adds pthread to target link dependencies.
+    "add Android unistd declaration to wxWidgets bundled zlib",
+)
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
+    r'''    # Android bionic provides pthread symbols through libc and has no
+    # separate libpthread.so. Remove PortAudio's desktop-only link dependency.
     if(BD_NAME STREQUAL "portaudio" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
         set(_portaudio_cmake "${SRC}/CMakeLists.txt")
         if(NOT EXISTS "${_portaudio_cmake}")
             message(FATAL_ERROR "PortAudio CMakeLists.txt was not found")
         endif()
         file(READ "${_portaudio_cmake}" _portaudio_text)
-        # Bracket arguments preserve the literal CMake variable in the
-        # upstream source; normal quoted arguments expand it in this scope.
         string(REPLACE
             [=[SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m pthread)]=]
             [=[SET(PA_LIBRARY_DEPENDENCIES ${PA_LIBRARY_DEPENDENCIES} m)]=]
             _portaudio_text "${_portaudio_text}")
-        if(_portaudio_text MATCHES "PA_LIBRARY_DEPENDENCIES[^\n]*pthread")
+        if(_portaudio_text MATCHES "PA_LIBRARY_DEPENDENCIES[^\\n]*pthread")
             message(FATAL_ERROR "Could not remove desktop libpthread dependency from PortAudio")
         endif()
         file(WRITE "${_portaudio_cmake}" "${_portaudio_text}")
