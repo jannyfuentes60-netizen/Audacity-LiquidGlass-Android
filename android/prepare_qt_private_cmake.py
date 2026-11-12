@@ -29,7 +29,7 @@ def private_include_root(header: Path, module: str) -> Path:
     needle = (module, version, module, "private")
     for i in range(len(parts) - len(needle) + 1):
         if tuple(parts[i:i + len(needle)]) == needle:
-            return Path(*parts[:i + 2 + 1])  # include/<Module>/<version>
+            return Path(*parts[:i + 2])  # include/<Module>/<version>
     raise SystemExit(
         f"Unexpected private-header layout for {header}; expected "
         f"include/{module}/{version}/{module}/private/..."
@@ -55,6 +55,12 @@ qpa_header = require(f"include/QtGui/{version}/QtGui/qpa/qplatformwindow.h")
 gui_versioned_root = private_include_root(gui_private, "QtGui")
 core_versioned_root = private_include_root(core_global_private, "QtCore")
 qpa_include_root = qpa_header.parent.parent
+
+# Fail here if the computed roots do not resolve the exact installed headers.
+if not (gui_versioned_root / "QtGui/private/qhighdpiscaling_p.h").is_file():
+    raise SystemExit(f"Computed QtGui private include root is invalid: {gui_versioned_root}")
+if not (core_versioned_root / "QtCore/private/qglobal_p.h").is_file():
+    raise SystemExit(f"Computed QtCore private include root is invalid: {core_versioned_root}")
 
 core_dir = cmake_root / "Qt6CorePrivate"
 gui_dir = cmake_root / "Qt6GuiPrivate"
