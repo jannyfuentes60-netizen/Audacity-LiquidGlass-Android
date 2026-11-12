@@ -367,7 +367,22 @@ edit(
 
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
-    '    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")',
+    '    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")
+
+    # HarfBuzz's optional FreeType bridge is not needed by Audacity's text
+    # shaping path. The dependency recipe enables it unconditionally, but
+    # this Android build does not provide a standalone FreeType CMake package
+    # to HarfBuzz. Keep HarfBuzz itself enabled and disable only that bridge.
+    if(BD_NAME STREQUAL "harfbuzz" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        string(REPLACE
+            [=[-DHB_HAVE_FREETYPE=ON]=]
+            [=[-DHB_HAVE_FREETYPE=OFF]=]
+            _dep_cmake_args "${_dep_cmake_args}")
+        if(_dep_cmake_args MATCHES "HB_HAVE_FREETYPE=ON")
+            message(FATAL_ERROR "[harfbuzz] failed to disable optional FreeType bridge for Android")
+        endif()
+        message(STATUS "[harfbuzz] disabled optional FreeType bridge for Android")
+    endif()',
     '''    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")
 
     # Vorbis 1.3.7 uses FindOgg.cmake, which does not consume OggConfig.cmake
