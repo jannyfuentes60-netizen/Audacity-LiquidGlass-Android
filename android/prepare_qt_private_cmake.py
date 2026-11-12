@@ -51,7 +51,7 @@ core_global_private = require(
 )
 
 # KDDockWidgets includes this QPA header as <qpa/qplatformwindow.h>.
-qpa_header = require("include/QtGui/qpa/qplatformwindow.h")
+qpa_header = require(f"include/QtGui/{version}/QtGui/qpa/qplatformwindow.h")
 
 gui_versioned_root = private_include_root(gui_private, "QtGui")
 core_versioned_root = private_include_root(core_global_private, "QtCore")
