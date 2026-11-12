@@ -267,6 +267,29 @@ edit(
             message(FATAL_ERROR "[wxwidgets] unexpected wx/filename.h path separator expression")
         endif()
 
+        # wxWidgets 3.2 uses unsigned integer subscripts in several
+        # wxString expressions. Android NDK Clang sees those as ambiguous
+        # between wxString's int/long/size_t overloads. Normalize numeric
+        # unsigned literals and explicit unsigned-int casts throughout the
+        # wxWidgets C++ sources to the int overload.
+        file(GLOB_RECURSE _wx_cpp_sources
+            "${SRC}/src/*.cpp"
+            "${SRC}/src/*.h"
+            "${SRC}/include/wx/*.h")
+        foreach(_wx_cpp_source ${_wx_cpp_sources})
+            file(READ "${_wx_cpp_source}" _wx_cpp_text)
+            string(REGEX REPLACE
+                "\\[([0-9]+)u\\]"
+                "[\\\\1]"
+                _wx_cpp_text "${_wx_cpp_text}")
+            string(REGEX REPLACE
+                "\\[\\(unsigned int\\)[ \t]*([A-Za-z_][A-Za-z0-9_]*)\\]"
+                "[static_cast<int>(\\\\1)]"
+                _wx_cpp_text "${_wx_cpp_text}")
+            file(WRITE "${_wx_cpp_source}" "${_wx_cpp_text}")
+        endforeach()
+        message(STATUS "[wxwidgets] normalized ambiguous unsigned wxString indexes for Android Clang")
+
         # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,
         # but wxUILocale is declared only when wxUSE_INTL=1. Android's
         # wxBase configuration disables intl, so keep the English fallback
