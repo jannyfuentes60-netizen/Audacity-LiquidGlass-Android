@@ -9,7 +9,6 @@ libraries or headers are mixed into the Android target.
 """
 from pathlib import Path
 import os
-import sys
 
 prefix = Path(os.environ["QT_ANDROID_ROOT"]).resolve()
 version = os.environ.get("QT_VERSION", "6.8.3")
