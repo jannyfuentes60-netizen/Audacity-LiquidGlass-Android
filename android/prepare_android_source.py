@@ -233,8 +233,22 @@ edit(
 set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)''',
     r'''set(DEP_CMAKE_ARGS_LINUX   -DwxUSE_GUI=OFF)
 set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)
-set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF)''',
-    "build wxBase without a desktop GTK toolkit on Android",
+set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF -DwxUSE_INTL=ON)''',
+    "build wxBase with Audacity-required locale and translation support on Android",
+)
+
+edit(
+    "au3/libraries/au3-strings/Internat.cpp",
+    r'''#elif defined(__WXMSW__)
+    wxPathFormat format = wxPATH_WIN;
+#endif''',
+    r'''#elif defined(__WXMSW__)
+    wxPathFormat format = wxPATH_WIN;
+#elif defined(__ANDROID__)
+    // Android uses POSIX path rules for filenames.
+    wxPathFormat format = wxPATH_UNIX;
+#endif''',
+    "select POSIX filename rules for Android in Audacity string utilities",
 )
 
 edit(
