@@ -50,7 +50,7 @@ if setup_path.is_file():
     print(f"Installed setup.h: {setup_path.resolve()}")
     for macro in ("wxUSE_CONFIG", "wxUSE_INTL", "wxUSE_FILE",
                   "wxUSE_TEXTBUFFER", "wxUSE_TEXTFILE"):
-        found = re.findall(rf"^\\s*#\\s*define\\s+{macro}\\s+.*$", setup_text, re.M)
+        found = re.findall(rf"^\s*#\s*define\s+{macro}\s+.*$", setup_text, re.M)
         print(f"  setup.h {macro}: {found[-1].strip() if found else 'not defined'}")
 else:
     print(f"Installed setup.h missing: {setup_path.resolve()}")
@@ -60,7 +60,7 @@ if macros.returncode:
     print(macros.stderr[-12000:])
     raise SystemExit("Preprocessor macro inspection failed")
 for macro in ("wxUSE_CONFIG", "wxUSE_INTL", "wxUSE_FILE", "wxUSE_TEXTBUFFER", "wxUSE_TEXTFILE"):
-    found = re.search(rf"^#define {macro} (\\d+)$", macros.stdout, re.M)
+    found = re.search(rf"^#define {macro} (\d+)$", macros.stdout, re.M)
     print(f"Final {macro}: {found.group(1) if found else 'UNDEFINED'}")
 
 history = run(["-E", "-dD"])
@@ -69,7 +69,7 @@ if history.returncode:
     raise SystemExit("Preprocessor macro-history inspection failed")
 print("Feature macro definition history (in preprocessing order):")
 for line in history.stdout.splitlines():
-    if re.match(r"^#\\s*(?:define|undef)\\s+wxUSE_(?:CONFIG|INTL|FILE|TEXTBUFFER|TEXTFILE)\\b", line):
+    if re.match(r"^#\s*(?:define|undef)\s+wxUSE_(?:CONFIG|INTL|FILE|TEXTBUFFER|TEXTFILE)\b", line):
         print(f"  {line}")
 
 trace = run(["-E", "-H", "-o", "/dev/null"])
@@ -87,7 +87,7 @@ if preprocessed.returncode:
     print(preprocessed.stderr[-12000:])
     raise SystemExit("Full preprocessing failed")
 has_declaration = bool(re.search(
-    r"\\bclass\\s+(?:[A-Za-z_][A-Za-z0-9_]*\\s+)*wxFileConfig\\b",
+    r"\bclass\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)*wxFileConfig\b",
     preprocessed.stdout))
 print(f"wxFileConfig declaration visible: {'YES' if has_declaration else 'NO'}")
 
