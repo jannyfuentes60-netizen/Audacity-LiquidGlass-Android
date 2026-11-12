@@ -230,20 +230,23 @@ edit(
     "muse_deps/buildtools/build_dependency.cmake",
     r'''    # Apply patches
     foreach(_patch ${DEP_PATCHES})''',
-    r'''    # wxWidgets bundles zlib. Its gzlib.c uses lseek() on POSIX, but
-    # the bundled source does not include unistd.h for this Android build.
+    r'''    # wxWidgets bundles zlib. Its gz*.c files use POSIX file APIs
+    # (read/write/close/lseek/unlink) without consistently including
+    # unistd.h. Add the declaration header to each affected source file.
     # Patch only the extracted wxWidgets copy, leaving upstream archives intact.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        set(_wx_gzlib "${SRC}/src/zlib/gzlib.c")
-        if(NOT EXISTS "${_wx_gzlib}")
-            message(FATAL_ERROR "[wxwidgets] bundled zlib gzlib.c was not found")
+        file(GLOB _wx_zlib_posix_sources "${SRC}/src/zlib/gz*.c")
+        if(NOT _wx_zlib_posix_sources)
+            message(FATAL_ERROR "[wxwidgets] bundled zlib gz*.c sources were not found")
         endif()
-        file(READ "${_wx_gzlib}" _wx_gzlib_text)
-        if(NOT _wx_gzlib_text MATCHES "#include <unistd.h>")
-            string(PREPEND _wx_gzlib_text "#include <unistd.h>\n")
-            file(WRITE "${_wx_gzlib}" "${_wx_gzlib_text}")
-        endif()
-        message(STATUS "[wxwidgets] added Android POSIX declaration for lseek")
+        foreach(_wx_zlib_source ${_wx_zlib_posix_sources})
+            file(READ "${_wx_zlib_source}" _wx_zlib_text)
+            if(NOT _wx_zlib_text MATCHES "#include <unistd.h>")
+                string(PREPEND _wx_zlib_text "#include <unistd.h>\\n")
+                file(WRITE "${_wx_zlib_source}" "${_wx_zlib_text}")
+            endif()
+        endforeach()
+        message(STATUS "[wxwidgets] added Android POSIX declarations to bundled zlib sources")
     endif()
 
     # Apply patches
