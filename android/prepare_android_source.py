@@ -257,6 +257,39 @@ edit(
 )
 
 edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r```    _bd_run(${CMAKE_COMMAND} ${_configure_args})
+    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)```,
+    r```    _bd_run(${CMAKE_COMMAND} ${_configure_args})
+
+    # Verify the actual generated wx/setup.h, not the Android platform header.
+    # This catches a silently ignored or overridden wxUSE_INTL cache option
+    # before spending time compiling wxWidgets and Audacity.
+    if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        file(STRINGS "${BUILD}/CMakeCache.txt" _wx_intl_cache REGEX "^wxUSE_INTL:BOOL=")
+        if(NOT _wx_intl_cache STREQUAL "wxUSE_INTL:BOOL=ON")
+            message(FATAL_ERROR "[wxwidgets] nested CMake did not retain wxUSE_INTL=ON: ${_wx_intl_cache}")
+        endif()
+
+        file(GLOB_RECURSE _wx_setup_headers "${BUILD}/*/wx/setup.h")
+        set(_wx_intl_setup_found FALSE)
+        foreach(_wx_setup_header IN LISTS _wx_setup_headers)
+            file(READ "${_wx_setup_header}" _wx_setup_text)
+            if(_wx_setup_text MATCHES "#define wxUSE_INTL 1")
+                set(_wx_intl_setup_found TRUE)
+            endif()
+        endforeach()
+        if(NOT _wx_intl_setup_found)
+            message(FATAL_ERROR "[wxwidgets] CMake cache says wxUSE_INTL=ON but generated wx/setup.h does not")
+        endif()
+        message(STATUS "[wxwidgets] verified wxUSE_INTL=1 in generated wx/setup.h")
+    endif()
+
+    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)```,
+    "verify wxWidgets internationalization in its generated setup header",
+)
+
+edit(
     "au3/libraries/au3-strings/Internat.cpp",
     r'''#elif defined(__WXMSW__)
     wxPathFormat format = wxPATH_WIN;
@@ -351,18 +384,10 @@ edit(
             [=[/* wxSIZE_T_IS_UINT is false for arm64-v8a. */]=]
             _wx_android_config_text "${_wx_android_config_text}")
 
-        # wxWidgets' Android platform header hardcodes wxUSE_INTL=0.
-        # The CMake cache option cannot override this platform macro, so
-        # enable it in the actual Android config header before setup.h is
-        # generated. Audacity's Languages.cpp requires wxLocale and
-        # wxLanguageInfo, and wxBase provides these without desktop GUI.
-        string(REPLACE
-            [=[#define wxUSE_INTL 0]=]
-            [=[#define wxUSE_INTL 1]=]
-            _wx_android_config_text "${_wx_android_config_text}")
-        if(NOT _wx_android_config_text MATCHES "#define wxUSE_INTL 1")
-            message(FATAL_ERROR "[wxwidgets] failed to enable wxUSE_INTL in Android config header")
-        endif()
+        # wxWidgets 3.2.6's Android config header does not define wxUSE_INTL.
+        # Its generated wx/setup.h comes from build/cmake/setup.h.in instead.
+        # Keep internationalization controlled by the real wxWidgets CMake
+        # option passed to the nested configure, not by this platform header.
 
         if(_wx_android_config_text MATCHES "#define SIZEOF_LONG 4"
            OR _wx_android_config_text MATCHES "#define SIZEOF_SIZE_T 4"
