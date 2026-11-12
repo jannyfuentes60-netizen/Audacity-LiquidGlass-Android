@@ -267,28 +267,32 @@ edit(
             message(FATAL_ERROR "[wxwidgets] unexpected wx/filename.h path separator expression")
         endif()
 
-        # wxWidgets 3.2 uses unsigned integer subscripts in several
-        # wxString expressions. Android NDK Clang sees those as ambiguous
-        # between wxString's int/long/size_t overloads. Normalize numeric
-        # unsigned literals and explicit unsigned-int casts throughout the
-        # wxWidgets C++ sources to the int overload.
-        file(GLOB_RECURSE _wx_cpp_sources
-            "${SRC}/src/*.cpp"
-            "${SRC}/src/*.h"
-            "${SRC}/include/wx/*.h")
-        foreach(_wx_cpp_source ${_wx_cpp_sources})
-            file(READ "${_wx_cpp_source}" _wx_cpp_text)
+        # wxWidgets 3.2.6 ships an Android config header written for 32-bit
+        # ARM. This build targets arm64-v8a: correct the ABI size macros and
+        # let wxString expose its unsigned-int subscript overload. Without
+        # this, wxSIZE_T_IS_UINT suppresses that overload and Clang reports
+        # ambiguous operator[] calls throughout wxBase.
+        set(_wx_android_config "${SRC}/include/wx/android/config_android.h")
+        if(NOT EXISTS "${_wx_android_config}")
+            message(FATAL_ERROR "[wxwidgets] Android config header was not found")
+        endif()
+        file(READ "${_wx_android_config}" _wx_android_config_text)
+        foreach(_size_macro SIZEOF_LONG SIZEOF_SIZE_T SIZEOF_VOID_P)
             string(REGEX REPLACE
-                "\\[([0-9]+)u\\]"
-                "[\\1]"
-                _wx_cpp_text "${_wx_cpp_text}")
-            string(REGEX REPLACE
-                "\\[\\(unsigned int\\)[ \t]*([A-Za-z_][A-Za-z0-9_]*)\\]"
-                "[static_cast<int>(\\1)]"
-                _wx_cpp_text "${_wx_cpp_text}")
-            file(WRITE "${_wx_cpp_source}" "${_wx_cpp_text}")
+                "(#define ${_size_macro})[ \t]+4"
+                "\\1 8"
+                _wx_android_config_text "${_wx_android_config_text}")
         endforeach()
-        message(STATUS "[wxwidgets] normalized ambiguous unsigned wxString indexes for Android Clang")
+        string(REGEX REPLACE
+            "(^|\\n)[ \t]*#define wxSIZE_T_IS_UINT[ \t]+1"
+            "\\1/* wxSIZE_T_IS_UINT is false for arm64-v8a. */"
+            _wx_android_config_text "${_wx_android_config_text}")
+        if(_wx_android_config_text MATCHES "#define SIZEOF_(LONG|SIZE_T|VOID_P)[ \t]+4"
+           OR _wx_android_config_text MATCHES "#define wxSIZE_T_IS_UINT")
+            message(FATAL_ERROR "[wxwidgets] failed to correct 32-bit Android ABI macros for arm64")
+        endif()
+        file(WRITE "${_wx_android_config}" "${_wx_android_config_text}")
+        message(STATUS "[wxwidgets] corrected Android config sizes for arm64-v8a")
 
         # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,
         # but wxUILocale is declared only when wxUSE_INTL=1. Android's
