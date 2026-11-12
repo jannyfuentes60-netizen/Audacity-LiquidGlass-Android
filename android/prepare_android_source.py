@@ -248,7 +248,7 @@ edit(
     # Force this at the final nested configure boundary, rather than relying
     # on a platform override whose BD_OS may differ across manifest versions.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_CONFIG=ON -DwxUSE_GUI=OFF)
+        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_FILE=ON -DwxUSE_TEXTBUFFER=ON -DwxUSE_TEXTFILE=ON -DwxUSE_CONFIG=ON -DwxUSE_GUI=OFF)
         message(STATUS "[wxwidgets] forcing wxUSE_INTL=ON for Android")
     endif()
 
@@ -266,29 +266,27 @@ edit(
     # This catches a silently ignored or overridden wxUSE_INTL cache option
     # before spending time compiling wxWidgets and Audacity.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        file(STRINGS "${BUILD}/CMakeCache.txt" _wx_intl_cache REGEX "^wxUSE_INTL:BOOL=")
-        if(NOT _wx_intl_cache STREQUAL "wxUSE_INTL:BOOL=ON")
-            message(FATAL_ERROR "[wxwidgets] nested CMake did not retain wxUSE_INTL=ON: ${_wx_intl_cache}")
-        endif()
-
-        file(GLOB_RECURSE _wx_setup_headers "${BUILD}/*/wx/setup.h")
-        set(_wx_intl_setup_found FALSE)
-        foreach(_wx_setup_header IN LISTS _wx_setup_headers)
-            file(READ "${_wx_setup_header}" _wx_setup_text)
-            if(_wx_setup_text MATCHES "#define wxUSE_INTL 1")
-                set(_wx_intl_setup_found TRUE)
-            endif()
-            if(_wx_setup_text MATCHES "#define wxUSE_CONFIG 1")
-                set(_wx_config_setup_found TRUE)
+        foreach(_wx_option wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+            file(STRINGS "${BUILD}/CMakeCache.txt" _wx_option_cache REGEX "^${_wx_option}:BOOL=")
+            if(NOT _wx_option_cache STREQUAL "${_wx_option}:BOOL=ON")
+                message(FATAL_ERROR "[wxwidgets] required option ${_wx_option} was disabled or not retained by wxWidgets CMake: ${_wx_option_cache}")
             endif()
         endforeach()
-        if(NOT _wx_intl_setup_found)
-            message(FATAL_ERROR "[wxwidgets] CMake cache says wxUSE_INTL=ON but generated wx/setup.h does not")
+
+        # Inspect only the exact generated base-unicode setup.h consumed by
+        # Audacity. A recursive glob can accidentally pass by finding a
+        # different setup.h from another configuration.
+        set(_wx_setup_header "${BUILD}/lib/wx/include/base-unicode-3.2/wx/setup.h")
+        if(NOT EXISTS "${_wx_setup_header}")
+            message(FATAL_ERROR "[wxwidgets] expected generated setup.h is missing: ${_wx_setup_header}")
         endif()
-        if(NOT _wx_config_setup_found)
-            message(FATAL_ERROR "[wxwidgets] CMake cache says wxUSE_CONFIG=ON but generated wx/setup.h does not")
-        endif()
-        message(STATUS "[wxwidgets] verified wxUSE_INTL=1 and wxUSE_CONFIG=1 in generated wx/setup.h")
+        file(READ "${_wx_setup_header}" _wx_setup_text)
+        foreach(_wx_macro wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+            if(NOT _wx_setup_text MATCHES "#define ${_wx_macro} 1")
+                message(FATAL_ERROR "[wxwidgets] actual base-unicode setup.h does not enable ${_wx_macro}")
+            endif()
+        endforeach()
+        message(STATUS "[wxwidgets] verified wxUSE_INTL, FILE, TEXTBUFFER, TEXTFILE and CONFIG are enabled in the exact base-unicode setup.h")
     endif()
 
     _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)''',
