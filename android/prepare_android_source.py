@@ -68,6 +68,30 @@ set(archdetect_c_code "''',
 )
 
 edit(
+    "src/appshell/qml/Audacity/AppShell/CMakeLists.txt",
+    r'''elseif(OS_IS_LIN OR OS_IS_FREEBSD)
+    qt_target_qml_sources(appshell_qml
+        QML_FILES
+            platform/linux/Main.qml
+    )
+else()
+    message(FATAL_ERROR "Unsupported OS")
+endif()''',
+    r'''elseif(OS_IS_LIN OR OS_IS_FREEBSD OR OS_IS_ANDROID)
+    # Audacity 4.0.2 has no Android-specific AppShell QML entry point yet.
+    # Use the generic Linux shell as the closest existing non-native-menu
+    # implementation so Android can configure without pretending to be Linux.
+    qt_target_qml_sources(appshell_qml
+        QML_FILES
+            platform/linux/Main.qml
+    )
+else()
+    message(FATAL_ERROR "Unsupported OS")
+endif()''',
+    "select existing generic AppShell QML entry point for Android",
+)
+
+edit(
     "muse/buildscripts/cmake/SetupQt6.cmake",
     r'''    list(APPEND qt_components PrintSupport)
     list(APPEND QT_LIBRARIES Qt::PrintSupport)''',
