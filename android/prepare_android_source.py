@@ -175,11 +175,29 @@ edit(
             CMAKE_ANDROID_STL_TYPE
             CMAKE_SYSROOT
             CMAKE_C_COMPILER_TARGET
-            CMAKE_CXX_COMPILER_TARGET)
+            CMAKE_CXX_COMPILER_TARGET
+            CMAKE_C_FLAGS
+            CMAKE_CXX_FLAGS
+            ANDROID_ABI
+            ANDROID_PLATFORM
+            ANDROID_NDK
+            ANDROID_STL
+            ANDROID_TOOLCHAIN)
         if(DEFINED ${_var} AND NOT "${${_var}}" STREQUAL "")
             list(APPEND _configure_args "-D${_var}=${${_var}}")
         endif()
     endforeach()
+
+    # CMake's environment-based CFLAGS initialization is not guaranteed to
+    # survive nested configure invocations. Explicitly preserve large-file
+    # declarations required by FLAC on Android's bionic libc.
+    if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
+        list(APPEND _configure_args
+            "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -D_LARGEFILE_SOURCE=1"
+            "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -D_LARGEFILE_SOURCE=1"
+            "-DANDROID_ABI=arm64-v8a"
+            "-DANDROID_PLATFORM=android-28")
+    endif()
 
     # Prepare initial cache variables''',
     "forward Android toolchain into nested dependency builds",
