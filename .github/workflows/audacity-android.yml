@@ -231,9 +231,6 @@ jobs:
             -DMUSE_COMPILE_USE_UNITY=OFF \
             -DMUSE_ENABLE_UNIT_TESTS=OFF
 
-      - name: Enable wxFileConfig for Audacity's Android wx components
-        run: python3 android/enable_wx_android_config.py
-
       - name: Diagnose wxWidgets feature macros in the failing Audacity translation unit
         run: python3 android/diagnose_wx_config.py
 
