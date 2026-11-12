@@ -201,6 +201,7 @@ jobs:
             -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
             -DQt6QmlWorkerScript_DIR="$QT_QML_WORKERSCRIPT_DIR" \
             -DQt6Test_DIR="$QT_TEST_DIR" \
+            -DQt6CorePrivate_DIR="$QT_CORE_PRIVATE_DIR" \
             -DQt6GuiPrivate_DIR="$QT_GUI_PRIVATE_DIR" \
             -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
             -DQt6QuickTemplates2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickTemplates2" \
