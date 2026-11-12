@@ -247,6 +247,25 @@ edit(
             endif()
         endforeach()
         message(STATUS "[wxwidgets] added Android POSIX declarations to bundled zlib sources")
+        
+        # wxWidgets 3.2's unsigned literal [0u] is ambiguous with its
+        # int/long/size_t wxString overloads under Android NDK Clang.
+        # Use the int overload explicitly; this is the same first character.
+        set(_wx_filename_header "${SRC}/include/wx/filename.h")
+        if(NOT EXISTS "${_wx_filename_header}")
+            message(FATAL_ERROR "[wxwidgets] wx/filename.h was not found")
+        endif()
+        file(READ "${_wx_filename_header}" _wx_filename_text)
+        if(_wx_filename_text MATCHES "GetPathSeparators\\(format\\)\\[0u\\]")
+            string(REPLACE
+                [=[GetPathSeparators(format)[0u]]=]
+                [=[GetPathSeparators(format)[0]]=]
+                _wx_filename_text "${_wx_filename_text}")
+            file(WRITE "${_wx_filename_header}" "${_wx_filename_text}")
+            message(STATUS "[wxwidgets] fixed ambiguous wxString index for Android Clang")
+        elseif(NOT _wx_filename_text MATCHES "GetPathSeparators\\(format\\)\\[0\\]")
+            message(FATAL_ERROR "[wxwidgets] unexpected wx/filename.h path separator expression")
+        endif()
     endif()
 
     # Apply patches
