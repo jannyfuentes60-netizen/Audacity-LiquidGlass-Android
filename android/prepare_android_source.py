@@ -258,9 +258,9 @@ edit(
 
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
-    r```    _bd_run(${CMAKE_COMMAND} ${_configure_args})
-    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)```,
-    r```    _bd_run(${CMAKE_COMMAND} ${_configure_args})
+    r'''    _bd_run(${CMAKE_COMMAND} ${_configure_args})
+    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)''',
+    r'''    _bd_run(${CMAKE_COMMAND} ${_configure_args})
 
     # Verify the actual generated wx/setup.h, not the Android platform header.
     # This catches a silently ignored or overridden wxUSE_INTL cache option
@@ -285,7 +285,7 @@ edit(
         message(STATUS "[wxwidgets] verified wxUSE_INTL=1 in generated wx/setup.h")
     endif()
 
-    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)```,
+    _bd_run(${CMAKE_COMMAND} --build "${BUILD}" --config ${BD_CONFIG} --target install --parallel)''',
     "verify wxWidgets internationalization in its generated setup header",
 )
 
