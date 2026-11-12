@@ -583,16 +583,22 @@ edit(
             message(FATAL_ERROR "[wxwidgets] Android chkconf.h was not found")
         endif()
         file(READ "${_wx_android_chkconf}" _wx_android_chkconf_text)
-        string(REGEX REPLACE
-            "#undef wxUSE_CONFIG[ \\t]*[\\r\\n]+#define wxUSE_CONFIG 0"
-            "# wxUSE_CONFIG remains enabled for Audacity Qt components"
-            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
-        string(REGEX REPLACE
-            "#undef wxUSE_INTL[ \\t]*[\\r\\n]+#define wxUSE_INTL 0"
-            "# wxUSE_INTL remains enabled for Audacity Qt components"
-            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        # Replace the individual directives instead of matching a multiline
+        # regex: CMake regex handling of CR/LF varies across versions.
+        foreach(_wx_feature CONFIG INTL)
+            string(REPLACE
+                "#undef wxUSE_${_wx_feature}"
+                "// wxUSE_${_wx_feature} intentionally retained for Audacity Qt components"
+                _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+            string(REPLACE
+                "#define wxUSE_${_wx_feature} 0"
+                "// wxUSE_${_wx_feature} remains enabled"
+                _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        endforeach()
         if(_wx_android_chkconf_text MATCHES "#define wxUSE_CONFIG 0"
-           OR _wx_android_chkconf_text MATCHES "#define wxUSE_INTL 0")
+           OR _wx_android_chkconf_text MATCHES "#define wxUSE_INTL 0"
+           OR _wx_android_chkconf_text MATCHES "#undef wxUSE_CONFIG"
+           OR _wx_android_chkconf_text MATCHES "#undef wxUSE_INTL")
             message(FATAL_ERROR "[wxwidgets] Android chkconf.h still disables CONFIG or INTL")
         endif()
         file(WRITE "${_wx_android_chkconf}" "${_wx_android_chkconf_text}")
