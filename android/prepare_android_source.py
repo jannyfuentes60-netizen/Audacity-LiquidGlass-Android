@@ -228,7 +228,23 @@ edit(
 
 edit(
     "muse_deps/buildtools/build_dependency.cmake",
-    r'''    # Apply patches
+    r'''    # wxWidgets bundles zlib. Its gzlib.c uses lseek() on POSIX, but
+    # the bundled source does not include unistd.h for this Android build.
+    # Patch only the extracted wxWidgets copy, leaving upstream archives intact.
+    if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        set(_wx_gzlib "${SRC}/src/zlib/gzlib.c")
+        if(NOT EXISTS "${_wx_gzlib}")
+            message(FATAL_ERROR "[wxwidgets] bundled zlib gzlib.c was not found")
+        endif()
+        file(READ "${_wx_gzlib}" _wx_gzlib_text)
+        if(NOT _wx_gzlib_text MATCHES "#include <unistd.h>")
+            string(PREPEND _wx_gzlib_text "#include <unistd.h>\\n")
+            file(WRITE "${_wx_gzlib}" "${_wx_gzlib_text}")
+        endif()
+        message(STATUS "[wxwidgets] added Android POSIX declaration for lseek")
+    endif()
+
+    # Apply patches
     foreach(_patch ${DEP_PATCHES})''',
     r'''    # Android's bionic libc provides pthread symbols directly; unlike
     # desktop Linux it has no separate libpthread.so. PortAudio's upstream
