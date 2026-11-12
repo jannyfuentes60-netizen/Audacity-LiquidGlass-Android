@@ -90,8 +90,10 @@ preprocessed = run(["-E"])
 if preprocessed.returncode:
     print(preprocessed.stderr[-12000:])
     raise SystemExit("Full preprocessing failed")
+# WXDLLIMPEXP_BASE expands to compiler attributes on Android, so the
+# class name is not necessarily adjacent to the "class" keyword.
 has_declaration = bool(re.search(
-    r"\bclass\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)*wxFileConfig\b",
+    r"\bclass\b[\\s\\S]{0,600}?\\bwxFileConfig\\s*:\\s*public\\s+wxConfigBase\\b",
     preprocessed.stdout))
 print(f"wxFileConfig declaration visible: {'YES' if has_declaration else 'NO'}")
 
