@@ -229,12 +229,31 @@ edit(
 
 edit(
     "muse_deps/recipes/wxwidgets/spec.cmake",
-    r'''set(DEP_CMAKE_ARGS_LINUX   -DwxUSE_GUI=OFF)
-set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)''',
-    r'''set(DEP_CMAKE_ARGS_LINUX   -DwxUSE_GUI=OFF)
-set(DEP_CMAKE_ARGS_WINDOWS -DwxUSE_GUI=OFF)
-set(DEP_CMAKE_ARGS_ANDROID -DwxUSE_GUI=OFF -DwxUSE_INTL=ON)''',
-    "build wxBase with Audacity-required locale and translation support on Android",
+    r'''    -DwxUSE_SECRETSTORE=OFF
+)''',
+    r'''    -DwxUSE_SECRETSTORE=OFF
+    -DwxUSE_INTL=ON
+)''',
+    "enable wxWidgets internationalization in its base CMake configuration",
+)
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")
+
+    set(_bd_generator''',
+    r'''    string(REPLACE "@RECIPE_DIR@" "${BD_RECIPE_DIR}" _dep_cmake_args "${DEP_CMAKE_ARGS}")
+
+    # Audacity's wxLocale-based language manager requires wxUSE_INTL.
+    # Force this at the final nested configure boundary, rather than relying
+    # on a platform override whose BD_OS may differ across manifest versions.
+    if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_GUI=OFF)
+        message(STATUS "[wxwidgets] forcing wxUSE_INTL=ON for Android")
+    endif()
+
+    set(_bd_generator''',
+    "force wxWidgets locale support in the actual nested CMake configure",
 )
 
 edit(
