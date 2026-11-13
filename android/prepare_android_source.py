@@ -324,6 +324,38 @@ edit(
     "muse_deps/buildtools/build_dependency.cmake",
     r'''    # Apply patches
     foreach(_patch ${DEP_PATCHES})''',
+    r'''    # Nyquist's legacy XLisp headers use BSD aliases that are not
+    # provided by Android's bionic headers. Define the aliases locally in
+    # cext.h for this Android-only build.
+    if(BD_NAME STREQUAL "nyquist" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        file(GLOB_RECURSE _nyquist_cext_headers "${SRC}/cext.h" "${SRC}/*/cext.h")
+        set(_nyquist_cext_found FALSE)
+        foreach(_nyquist_cext ${_nyquist_cext_headers})
+            file(READ "${_nyquist_cext}" _nyquist_cext_text)
+            if(_nyquist_cext_text MATCHES "public ulong MyMaxMem")
+                if(NOT _nyquist_cext_text MATCHES "NYQUIST_ANDROID_LEGACY_TYPES")
+                    string(PREPEND _nyquist_cext_text
+                        "/* Android compatibility for legacy XLisp integer aliases. */\n#ifndef NYQUIST_ANDROID_LEGACY_TYPES\n#define NYQUIST_ANDROID_LEGACY_TYPES\n#define ulong unsigned long\n#define ushort unsigned short\n#endif\n")
+                    file(WRITE "${_nyquist_cext}" "${_nyquist_cext_text}")
+                endif()
+                set(_nyquist_cext_found TRUE)
+                message(STATUS "[nyquist] added Android definitions for ulong and ushort in ${_nyquist_cext}")
+            endif()
+        endforeach()
+        if(NOT _nyquist_cext_found)
+            message(FATAL_ERROR "[nyquist] could not find cext.h containing the legacy ulong/ushort declaration")
+        endif()
+    endif()
+
+    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
+    "define Nyquist legacy integer aliases for Android",
+)
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
     r'''    # wxWidgets bundles zlib. Its gz*.c files use POSIX file APIs
     # (read/write/close/lseek/unlink) without consistently including
     # unistd.h. Add the declaration header to each affected source file.
