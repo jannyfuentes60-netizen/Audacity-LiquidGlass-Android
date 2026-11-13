@@ -248,7 +248,7 @@ edit(
     # Force this at the final nested configure boundary, rather than relying
     # on a platform override whose BD_OS may differ across manifest versions.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_FILE=ON -DwxUSE_TEXTBUFFER=ON -DwxUSE_TEXTFILE=ON -DwxUSE_CONFIG=ON -DwxUSE_GUI=OFF)
+        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_FILE=ON -DwxUSE_TEXTBUFFER=ON -DwxUSE_TEXTFILE=ON -DwxUSE_CONFIG=ON -DwxUSE_DYNLIB_CLASS=ON -DwxUSE_GUI=OFF)
         message(STATUS "[wxwidgets] forcing wxUSE_INTL=ON for Android")
     endif()
 
@@ -266,7 +266,7 @@ edit(
     # This catches a silently ignored or overridden wxUSE_INTL cache option
     # before spending time compiling wxWidgets and Audacity.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        foreach(_wx_option wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+        foreach(_wx_option wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG wxUSE_DYNLIB_CLASS)
             file(STRINGS "${BUILD}/CMakeCache.txt" _wx_option_cache REGEX "^${_wx_option}:BOOL=")
             if(NOT _wx_option_cache STREQUAL "${_wx_option}:BOOL=ON")
                 message(FATAL_ERROR "[wxwidgets] required option ${_wx_option} was disabled or not retained by wxWidgets CMake: ${_wx_option_cache}")
@@ -281,7 +281,7 @@ edit(
             message(FATAL_ERROR "[wxwidgets] expected generated setup.h is missing: ${_wx_setup_header}")
         endif()
         file(READ "${_wx_setup_header}" _wx_setup_text)
-        foreach(_wx_macro wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+        foreach(_wx_macro wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG wxUSE_DYNLIB_CLASS)
             if(NOT _wx_setup_text MATCHES "#define ${_wx_macro} 1")
                 message(FATAL_ERROR "[wxwidgets] actual base-unicode setup.h does not enable ${_wx_macro}")
             endif()
@@ -318,6 +318,38 @@ edit(
         return()
     endif()''',
     "skip desktop ELF RPATH rewriting for Android dependencies",
+)
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
+    r'''    # Nyquist's legacy XLisp headers use BSD aliases that are not
+    # provided by Android's bionic headers. Define the aliases locally in
+    # cext.h for this Android-only build.
+    if(BD_NAME STREQUAL "nyquist" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
+        file(GLOB_RECURSE _nyquist_cext_headers "${SRC}/cext.h" "${SRC}/*/cext.h")
+        set(_nyquist_cext_found FALSE)
+        foreach(_nyquist_cext ${_nyquist_cext_headers})
+            file(READ "${_nyquist_cext}" _nyquist_cext_text)
+            if(_nyquist_cext_text MATCHES "public ulong MyMaxMem")
+                if(NOT _nyquist_cext_text MATCHES "NYQUIST_ANDROID_LEGACY_TYPES")
+                    string(PREPEND _nyquist_cext_text
+                        "/* Android compatibility for legacy XLisp integer aliases. */\n#ifndef NYQUIST_ANDROID_LEGACY_TYPES\n#define NYQUIST_ANDROID_LEGACY_TYPES\n#define ulong unsigned long\n#define ushort unsigned short\n#endif\n")
+                    file(WRITE "${_nyquist_cext}" "${_nyquist_cext_text}")
+                endif()
+                set(_nyquist_cext_found TRUE)
+                message(STATUS "[nyquist] added Android definitions for ulong and ushort in ${_nyquist_cext}")
+            endif()
+        endforeach()
+        if(NOT _nyquist_cext_found)
+            message(FATAL_ERROR "[nyquist] could not find cext.h containing the legacy ulong/ushort declaration")
+        endif()
+    endif()
+
+    # Apply patches
+    foreach(_patch ${DEP_PATCHES})''',
+    "define Nyquist legacy integer aliases for Android",
 )
 
 edit(
@@ -568,6 +600,61 @@ edit(
     r'''#include <wx/filename.h>
 #include <wx/intl.h>''',
     "remove late intl override after moving it ahead of Languages.h",
+)
+
+
+edit(
+    "muse_deps/buildtools/build_dependency.cmake",
+    r'''        # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,''',
+    r'''        # Audacity's Qt application still compiles shared wx components that
+        # require wxFileConfig and wx internationalization declarations.
+        # wxWidgets disables these two features for non-Qt Android builds;
+        # enable them in chkconf.h before configuring and compiling wxBase.
+        set(_wx_android_chkconf "${SRC}/include/wx/android/chkconf.h")
+        if(NOT EXISTS "${_wx_android_chkconf}")
+            message(FATAL_ERROR "[wxwidgets] Android chkconf.h was not found")
+        endif()
+        file(READ "${_wx_android_chkconf}" _wx_android_chkconf_text)
+        # Replace the individual directives instead of matching a multiline
+        # regex: CMake regex handling of CR/LF varies across versions.
+        # Audacity compiles ModuleManager.cpp even on Android. Keep the
+        # wxDynamicLibrary API available (Android's NDK provides dlopen),
+        # while wxUSE_DYNAMIC_LOADER remains disabled because desktop plugin
+        # discovery/management is not part of this Android port.
+        string(REPLACE
+            "#undef wxUSE_DYNLIB_CLASS"
+            "// wxUSE_DYNLIB_CLASS retained for Android dlopen support"
+            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        string(REPLACE
+            "#define wxUSE_DYNLIB_CLASS 0"
+            "// wxUSE_DYNLIB_CLASS remains enabled"
+            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        if(_wx_android_chkconf_text MATCHES "#define wxUSE_DYNLIB_CLASS 0"
+           OR _wx_android_chkconf_text MATCHES "#undef wxUSE_DYNLIB_CLASS")
+            message(FATAL_ERROR "[wxwidgets] Android chkconf.h still disables wxDynamicLibrary")
+        endif()
+
+        foreach(_wx_feature CONFIG INTL)
+            string(REPLACE
+                "#undef wxUSE_${_wx_feature}"
+                "// wxUSE_${_wx_feature} intentionally retained for Audacity Qt components"
+                _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+            string(REPLACE
+                "#define wxUSE_${_wx_feature} 0"
+                "// wxUSE_${_wx_feature} remains enabled"
+                _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        endforeach()
+        if(_wx_android_chkconf_text MATCHES "#define wxUSE_CONFIG 0"
+           OR _wx_android_chkconf_text MATCHES "#define wxUSE_INTL 0"
+           OR _wx_android_chkconf_text MATCHES "#undef wxUSE_CONFIG"
+           OR _wx_android_chkconf_text MATCHES "#undef wxUSE_INTL")
+            message(FATAL_ERROR "[wxwidgets] Android chkconf.h still disables CONFIG or INTL")
+        endif()
+        file(WRITE "${_wx_android_chkconf}" "${_wx_android_chkconf_text}")
+        message(STATUS "[wxwidgets] kept wxUSE_CONFIG and wxUSE_INTL enabled for Audacity Qt components")
+
+        # wxWidgets 3.2.6's datetime.cpp calls wxUILocale unconditionally,''',
+    "enable wx CONFIG and INTL features before building wxBase",
 )
 
 print("Android source overlay applied.")
