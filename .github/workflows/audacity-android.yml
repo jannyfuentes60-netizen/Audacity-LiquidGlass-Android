@@ -1,6 +1,6 @@
 name: Audacity 4.0.2 Android (Andacious runtime)
 
-# Rebuild after correcting the generated Flutter module metadata check.
+# Build with generated Flutter module metadata preserved.
 "on":
   workflow_dispatch:
   push:
@@ -61,9 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           flutter create --template module --org tech.ula flutter_module
-          # Keep Flutter's generated module manifest and its module metadata intact.
           cp -R flutter/lib/. flutter_module/lib/
-          # In a generated module, module metadata is nested under the top-level flutter key.
           grep -q '^  module:' flutter_module/pubspec.yaml
           python3 - <<'PY'
           from pathlib import Path
@@ -71,15 +69,19 @@ jobs:
           source = manifest.read_text()
           nl = chr(10)
           needle = "  flutter:" + nl + "    sdk: flutter" + nl
-          additions = "".join([
-              "  cupertino_icons: ^1.0.8" + nl,
-              "  liquid_glass_widgets: ^1.17.3" + nl,
-              "  device_info_plus: ^12.3.0" + nl,
-              "  shared_preferences: ^2.5.3" + nl,
-          ])
           if needle not in source:
               raise SystemExit("Generated Flutter module dependencies block changed; refusing to overwrite module metadata.")
-          if "liquid_glass_widgets:" not in source:
+          dependencies = [
+              ("liquid_glass_widgets", "^1.17.3"),
+              ("device_info_plus", "^12.3.0"),
+              ("shared_preferences", "^2.5.3"),
+          ]
+          additions = "".join(
+              f"  {name}: {version}{nl}"
+              for name, version in dependencies
+              if f"  {name}:" not in source
+          )
+          if additions:
               source = source.replace(needle, needle + additions, 1)
           manifest.write_text(source)
           PY
