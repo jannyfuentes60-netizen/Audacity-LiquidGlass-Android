@@ -371,7 +371,17 @@ export ANDROID_NDK=$(install_ndk ./ ${ndk_version})
     # OpenSSL 1.1.1's Android Configure script reads ANDROID_NDK_HOME,
     # while this legacy FreeRDP build only exports ANDROID_NDK. Keep both
     # variables aligned with the exact r21e toolchain selected by FreeRDP.
-    ndk_export_pattern = r'(?m)^(\\s*export ANDROID_NDK=\\$\\(install_ndk[^\\n]*\\))
+    ndk_export_pattern = r'(?m)^(\s*export ANDROID_NDK=\$\(install_ndk[^\n]*\))$'
+    deps_source, ndk_exports_patched = re.subn(
+        ndk_export_pattern,
+        lambda match: match.group(1) + '\nexport ANDROID_NDK_HOME="$ANDROID_NDK"\nexport ANDROID_NDK_ROOT="$ANDROID_NDK"',
+        deps_source,
+        count=1,
+    )
+    if ndk_exports_patched != 1:
+        raise RuntimeError("Could not align ANDROID_NDK_HOME with FreeRDP's pinned NDK.")
+    deps_script.write_text(deps_source, encoding="utf-8")
+
     # Detect remaining Kotlin synthetic imports before the compiler does.
     synthetic_hits = []
     for source in (LIBRARY / "app" / "src").rglob("*.kt"):
