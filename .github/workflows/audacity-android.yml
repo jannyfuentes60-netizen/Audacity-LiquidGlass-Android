@@ -6,6 +6,7 @@ name: Audacity 4.0.2 Android (Andacious runtime)
     branches: [port/andacious-audacity-4]
     paths:
       - "android/**"
+      - "flutter/**"
       - ".github/workflows/audacity-android.yml"
       - ".gitmodules"
   pull_request:
@@ -47,9 +48,26 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
 
+      - name: Set up Flutter for the Liquid Glass library shell
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.0"
+          channel: stable
+          cache: true
+
+      - name: Build Flutter library module AAR
+        run: |
+          flutter create --template module --org tech.ula flutter_module
+          cp -R flutter/lib/. flutter_module/lib/
+          cp flutter/pubspec.yaml flutter_module/pubspec.yaml
+          cd flutter_module
+          flutter pub get
+          flutter build aar --debug
+
       - name: Prepare Andacious and replace its editor with Audacity 4.0.2
         run: |
           python3 android/prepare_andacious.py
+          python3 android/integrate_flutter.py
           bash -n android/runtime/andacious.sh
 
       - name: Build the required ARM64 FreeRDP Gradle module
