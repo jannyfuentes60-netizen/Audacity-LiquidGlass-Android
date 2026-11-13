@@ -112,17 +112,17 @@ def patch_android_build_config():
     patched = []
     for gradle_file in ANDACIOUS.rglob("build.gradle"):
         content = gradle_file.read_text(encoding="utf-8")
-        if not re.search(r"\\bbuildConfigField\\b", content):
+        if not re.search(r"\bbuildConfigField\b", content):
             continue
-        if not re.search(r"com\\.android\\.(application|library)", content):
+        if not re.search(r"com\.android\.(application|library)", content):
             continue
-        if re.search(r"buildFeatures\\s*\\{[^}]*\\bbuildConfig\\s+true", content, re.S):
+        if re.search(r"buildFeatures\s*\{[^}]*\bbuildConfig\s+true", content, re.S):
             continue
-        if not re.search(r"android\\s*\\{", content):
+        if not re.search(r"android\s*\{", content):
             raise RuntimeError(f"Android block missing in module with BuildConfig fields: {gradle_file}")
         updated = re.sub(
-            r"(android\\s*\\{)",
-            lambda match: match.group(1) + "\\n    buildFeatures { buildConfig true }",
+            r"(android\s*\{)",
+            lambda match: match.group(1) + "\n    buildFeatures { buildConfig true }",
             content,
             count=1,
         )
@@ -134,10 +134,10 @@ def patch_android_build_config():
     unresolved = []
     for gradle_file in ANDACIOUS.rglob("build.gradle"):
         content = gradle_file.read_text(encoding="utf-8")
-        if re.search(r"\\bbuildConfigField\\b", content) and re.search(
-            r"com\\.android\\.(application|library)", content
+        if re.search(r"\bbuildConfigField\b", content) and re.search(
+            r"com\.android\.(application|library)", content
         ) and not re.search(
-            r"buildFeatures\\s*\\{[^}]*\\bbuildConfig\\s+true", content, re.S
+            r"buildFeatures\s*\{[^}]*\bbuildConfig\s+true", content, re.S
         ):
             unresolved.append(str(gradle_file))
     if unresolved:
