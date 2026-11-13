@@ -13,6 +13,13 @@ done
 
 xterm &
 
+# Remove the Debian-provided Audacity package so the old editor is not left
+# installed alongside the 4.0.2 AppImage.
+if dpkg-query -W -f='${Status}' audacity 2>/dev/null | grep -q 'install ok installed'; then
+  echo "Removing the older Debian Audacity package..."
+  sudo apt-get purge -y audacity audacity-data
+fi
+
 if [ ! -f /support/gdk_fix ]; then
   update-mime-database /usr/share/mime
   find /usr/lib -name gdk-pixbuf-query-loaders -exec {} --update-cache \; 2>/dev/null || true
