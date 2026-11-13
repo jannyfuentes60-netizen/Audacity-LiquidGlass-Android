@@ -32,7 +32,7 @@ def patch_gradle():
     if "flutter_module/build/host/outputs/repo" not in data:
         data = data.replace(
             marker,
-            marker + '\n            maven { url "$rootDir/../flutter_module/build/host/outputs/repo" }'
+            marker + '\n            maven { url "$rootDir/../../flutter_module/build/host/outputs/repo" }'
             + '\n            maven { url "https://storage.googleapis.com/download.flutter.io" }',
             1,
         )
@@ -40,7 +40,7 @@ def patch_gradle():
 
     app_gradle = APP / "build.gradle"
     data = app_gradle.read_text(encoding="utf-8")
-    dependency = "implementation 'tech.ula.flutter_module:flutter_debug:1.0'"
+    dependency = "debugImplementation 'tech.ula.flutter_module:flutter_debug:1.0'"
     if dependency not in data:
         replace_once(
             app_gradle,
