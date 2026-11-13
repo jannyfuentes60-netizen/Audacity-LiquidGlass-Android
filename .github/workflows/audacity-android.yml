@@ -38,14 +38,12 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK and NDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: >-
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
-            ndk;27.2.12479018
+
+      - name: Install required SDK packages
+        run: |
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
 
       - name: Prepare Andacious and replace its editor with Audacity 4.0.2
         run: |
