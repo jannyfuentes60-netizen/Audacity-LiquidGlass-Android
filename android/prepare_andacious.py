@@ -207,6 +207,26 @@ def main():
             terminal_gradle.write_text(updated, encoding="utf-8")
             print(f"Removed obsolete publishing plugins from {terminal_gradle}", flush=True)
 
+
+    # Kotlin 2.x removed kotlin-android-extensions. Remove the obsolete plugin
+    # and DSL block before Gradle configures the legacy UserLAnd app module.
+    userland_gradle = LIBRARY / "app" / "build.gradle"
+    userland_content = userland_gradle.read_text(encoding="utf-8")
+    userland_content = re.sub(
+        r"(?m)^\\s*apply plugin: ['\\"]kotlin-android-extensions['\\"]\\s*\\n?",
+        "",
+        userland_content,
+    )
+    userland_content = re.sub(
+        r"(?s)\\nandroidExtensions\\s*\\{.*?\\n\\}\\s*",
+        "\\n",
+        userland_content,
+        count=1,
+    )
+    userland_gradle.write_text(userland_content, encoding="utf-8")
+    if "kotlin-android-extensions" in userland_content or re.search(r"(?m)^androidExtensions\\s*\\{", userland_content):
+        raise RuntimeError("Obsolete Kotlin Android Extensions DSL remains in UserLAndLibrary/app/build.gradle")
+
     # Adapt Andacious' wrapper to the public mirror's package and App model.
     activity = ANDACIOUS / "app/src/main/java/tech/ula/andacious/MainActivity.kt"
     replace_once(
