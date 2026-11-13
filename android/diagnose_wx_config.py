@@ -93,7 +93,7 @@ if preprocessed.returncode:
 # WXDLLIMPEXP_BASE expands to compiler attributes on Android, so the
 # class name is not necessarily adjacent to the "class" keyword.
 has_declaration = bool(re.search(
-    r"\bclass\b[\\s\\S]{0,600}?\\bwxFileConfig\\s*:\\s*public\\s+wxConfigBase\\b",
+    r"\bclass\b[\s\S]{0,600}?\bwxFileConfig\s*:\s*public\s+wxConfigBase\b",
     preprocessed.stdout))
 print(f"wxFileConfig declaration visible: {'YES' if has_declaration else 'NO'}")
 
