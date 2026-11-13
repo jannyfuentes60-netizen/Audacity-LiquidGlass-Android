@@ -202,6 +202,7 @@ export ANDROID_NDK=$(install_ndk ./ ${ndk_version})
     replacement = """# Parse command-line options
 parallel=""
 if [ "$1" = "freerdp-only" ]; then
+    mkdir -p deps
     build_freerdp
     exit 0
 fi
