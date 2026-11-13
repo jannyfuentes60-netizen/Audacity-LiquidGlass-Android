@@ -57,14 +57,14 @@ jobs:
         run: |
           ./gradlew --no-daemon --stacktrace --continue \
             :app:dependencies \
-            :UserLAndLibrary:app:dependencies \
-            :UserLAndLibrary:terminal-app:dependencies \
-            :UserLAndLibrary:terminal-view:dependencies \
-            :UserLAndLibrary:terminal-emulator:dependencies \
-            :UserLAndLibrary:bVNC:dependencies \
-            :UserLAndLibrary:pubkeyGenerator:dependencies \
-            :UserLAndLibrary:remoteClientLib:dependencies \
-            :UserLAndLibrary:remoteClientLib:jni:libs:deps:FreeRDP:client:Android:Studio:freeRDPCore:dependencies
+            :UserLAndLibrary:dependencies \
+            :terminal-app:dependencies \
+            :terminal-view:dependencies \
+            :terminal-emulator:dependencies \
+            :bVNC:dependencies \
+            :pubkeyGenerator:dependencies \
+            :remoteClientLib:dependencies \
+            :remoteClientLib:jni:libs:deps:FreeRDP:client:Android:Studio:freeRDPCore:dependencies
 
       - name: Build Android APK
         working-directory: android/andacious
