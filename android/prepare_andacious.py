@@ -117,13 +117,13 @@ def main():
             raise SystemExit(f"Required Termux Gradle file is missing: {terminal_gradle}")
         content = terminal_gradle.read_text(encoding="utf-8")
         updated = re.sub(
-            r"(?s)plugins\\s*\\{(?=[^}]*com\\.jfrog\\.bintray)(?=[^}]*com\\.github\\.dcendents\\.android-maven)[^}]*\\}\\s*",
+            r"(?s)plugins\s*\{(?=[^}]*com\.jfrog\.bintray)(?=[^}]*com\.github\.dcendents\.android-maven)[^}]*\}\s*",
             "",
             content,
             count=1,
         )
         updated = re.sub(
-            r"(?m)^apply from: ['\"]\\.\\./scripts/bintray-publish\\.gradle['\"]\\s*\\n?",
+            r"(?m)^apply from: ['\"]\.\./scripts/bintray-publish\.gradle['\"]\s*\n?",
             "",
             updated,
             count=1,
