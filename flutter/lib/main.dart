@@ -18,7 +18,7 @@ extension GlassTierLabel on GlassTier {
         GlassTier.minimal => 'Ligera',
       };
 
-  String get description => switch (this) {
+  GlassQuality get quality => switch (this) {\n        GlassTier.premium => GlassQuality.premium,\n        GlassTier.standard => GlassQuality.standard,\n        GlassTier.minimal => GlassQuality.minimal,\n      };\n\n  String get description => switch (this) {
         GlassTier.premium => 'Refacción, iluminación y lentes Liquid Glass completos.',
         GlassTier.standard => 'Efectos equilibrados para mantener la biblioteca fluida.',
         GlassTier.minimal => 'Efectos reducidos para dispositivos con recursos limitados.',
@@ -156,20 +156,24 @@ class _AudacityLibraryAppState extends State<AudacityLibraryApp> {
         ),
       );
     }
-    return CupertinoApp(
-      debugShowCheckedModeBanner: false,
-      theme: const CupertinoThemeData(brightness: Brightness.light),
-      home: _showSetup
-          ? QualitySetupScreen(
-              assessment: _assessment!,
-              selected: _tier,
-              onSelected: (tier) => setState(() => _tier = tier),
-              onContinue: () => _saveTier(_tier),
-            )
-          : LibraryHome(
-              tier: _tier,
-              onTierChanged: _saveTier,
-            ),
+    return LiquidGlassWidgets.wrap(
+      child: CupertinoApp(
+        debugShowCheckedModeBanner: false,
+        theme: const CupertinoThemeData(brightness: Brightness.light),
+        home: _showSetup
+            ? QualitySetupScreen(
+                assessment: _assessment!,
+                selected: _tier,
+                onSelected: (tier) => setState(() => _tier = tier),
+                onContinue: () => _saveTier(_tier),
+              )
+            : LibraryHome(
+                tier: _tier,
+                onTierChanged: _saveTier,
+              ),
+      ),
+      brightnessResolver: Theme.maybeBrightnessOf,
+      theme: GlassThemeData.simple(quality: _tier.quality),
     );
   }
 }
