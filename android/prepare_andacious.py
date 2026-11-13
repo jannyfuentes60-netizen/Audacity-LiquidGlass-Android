@@ -98,6 +98,7 @@ def main():
         LIBRARY / "app" / "src" / "main" / "java" / "tech" / "ula" / "MainActivity.kt",
         LIBRARY / "app" / "src" / "main" / "java" / "tech" / "ula" / "model" / "entities" / "App.kt",
         LIBRARY / "termux-app" / "app",
+        LIBRARY / "termux-app" / "terminal-emulator" / "build.gradle",
         LIBRARY / "remote-desktop-clients" / "bVNC",
     ]
     missing = [str(path) for path in required if not path.exists()]
@@ -105,6 +106,25 @@ def main():
         raise SystemExit("UserLAndLibrary mirror is missing required paths:\n" + "\n".join(missing))
 
     ensure_android_namespaces()
+
+    # This legacy Termux subproject applies obsolete publishing plugins.
+    # They are not needed to build the Android app and pull the unavailable
+    # Groovy http-builder 0.7.2 artifact. Keep the Android library plugin only.
+    terminal_gradle = LIBRARY / "termux-app" / "terminal-emulator" / "build.gradle"
+    replace_once(
+        terminal_gradle,
+        '''plugins {
+    id "com.jfrog.bintray" version "1.8.5"
+    id "com.github.dcendents.android-maven" version "2.1"
+}
+''',
+        "",
+    )
+    replace_once(
+        terminal_gradle,
+        "apply from: '../scripts/bintray-publish.gradle'\n",
+        "",
+    )
 
     # Adapt Andacious' wrapper to the public mirror's package and App model.
     activity = ANDACIOUS / "app/src/main/java/tech/ula/andacious/MainActivity.kt"
