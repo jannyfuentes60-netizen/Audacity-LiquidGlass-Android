@@ -107,24 +107,32 @@ def main():
 
     ensure_android_namespaces()
 
-    # This legacy Termux subproject applies obsolete publishing plugins.
-    # They are not needed to build the Android app and pull the unavailable
-    # Groovy http-builder 0.7.2 artifact. Keep the Android library plugin only.
-    terminal_gradle = LIBRARY / "termux-app" / "terminal-emulator" / "build.gradle"
-    replace_once(
-        terminal_gradle,
-        '''plugins {
-    id "com.jfrog.bintray" version "1.8.5"
-    id "com.github.dcendents.android-maven" version "2.1"
-}
-''',
-        "",
-    )
-    replace_once(
-        terminal_gradle,
-        "apply from: '../scripts/bintray-publish.gradle'\n",
-        "",
-    )
+    # These legacy Termux modules apply obsolete publishing plugins. They
+    # are not needed to build the Android app and pull the unavailable Groovy
+    # http-builder 0.7.2 artifact. Remove only those publishing declarations
+    # from every affected module, retaining the Android library plugin.
+    for module in ("terminal-emulator", "terminal-view"):
+        terminal_gradle = LIBRARY / "termux-app" / module / "build.gradle"
+        if not terminal_gradle.is_file():
+            raise SystemExit(f"Required Termux Gradle file is missing: {terminal_gradle}")
+        content = terminal_gradle.read_text(encoding="utf-8")
+        updated = re.sub(
+            r"(?s)plugins\\s*\\{(?=[^}]*com\\.jfrog\\.bintray)(?=[^}]*com\\.github\\.dcendents\\.android-maven)[^}]*\\}\\s*",
+            "",
+            content,
+            count=1,
+        )
+        updated = re.sub(
+            r"(?m)^apply from: ['\"]\\.\\./scripts/bintray-publish\\.gradle['\"]\\s*\\n?",
+            "",
+            updated,
+            count=1,
+        )
+        if "com.jfrog.bintray" in updated or "bintray-publish.gradle" in updated:
+            raise RuntimeError(f"Legacy Bintray publishing plugin remains in {terminal_gradle}")
+        if updated != content:
+            terminal_gradle.write_text(updated, encoding="utf-8")
+            print(f"Removed obsolete publishing plugins from {terminal_gradle}", flush=True)
 
     # Adapt Andacious' wrapper to the public mirror's package and App model.
     activity = ANDACIOUS / "app/src/main/java/tech/ula/andacious/MainActivity.kt"
