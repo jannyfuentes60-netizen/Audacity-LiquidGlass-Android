@@ -357,7 +357,6 @@ export ANDROID_NDK=$(install_ndk ./ ${ndk_version})
 """
     new_config_patch = """               -e 's/WITH_JPEG=.*/WITH_JPEG=0/'\\
                -e 's/WITH_OPENH264=.*/WITH_OPENH264=0/'\\
-               -e 's/WITH_OPENSSL=.*/WITH_OPENSSL=0/'\\
                -e 's/BUILD_ARCH=.*/BUILD_ARCH="arm64-v8a"/'\\
                -e 's/NDK_TARGET=26/NDK_TARGET=21/'\\
 """
