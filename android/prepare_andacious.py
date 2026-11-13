@@ -304,10 +304,11 @@ def main():
             )
             parcelize_used = True
     if parcelize_used:
-        userland_content = userland_gradle.read_text(encoding="utf-8")
-        if "kotlin-parcelize" not in userland_content:
-            userland_content += "\napply plugin: 'kotlin-parcelize'\n"
-            userland_gradle.write_text(userland_content, encoding="utf-8")
+        parcelize_gradle = LIBRARY / "app" / "build.gradle"
+        parcelize_content = parcelize_gradle.read_text(encoding="utf-8")
+        if "kotlin-parcelize" not in parcelize_content:
+            parcelize_content += "\napply plugin: 'kotlin-parcelize'\n"
+            parcelize_gradle.write_text(parcelize_content, encoding="utf-8")
 
     # Verify that no removed Android Extensions imports remain.
     remaining_synthetics = []
