@@ -85,8 +85,8 @@ def patch_gradle_report_api():
     patched = 0
     for gradle_file in ANDACIOUS.rglob("*.gradle"):
         content = gradle_file.read_text(encoding="utf-8")
-        updated = re.sub(r"\\b(xml|html|csv)\\.enabled\\s*=", r"\\1.required =", content)
-        updated = re.sub(r"\\b(xml|html|csv)\\.destination\\b", r"\\1.outputLocation", updated)
+        updated = re.sub(r"\b(xml|html|csv)\.enabled\s*=", r"\1.required =", content)
+        updated = re.sub(r"\b(xml|html|csv)\.destination\b", r"\1.outputLocation", updated)
         if updated != content:
             gradle_file.write_text(updated, encoding="utf-8")
             patched += 1
@@ -97,9 +97,9 @@ def patch_gradle_report_api():
     remaining = []
     for gradle_file in ANDACIOUS.rglob("*.gradle"):
         content = gradle_file.read_text(encoding="utf-8")
-        if re.search(r"\\b(?:xml|html|csv)\\.enabled\\s*=", content):
+        if re.search(r"\b(?:xml|html|csv)\.enabled\s*=", content):
             remaining.append(str(gradle_file))
-        if re.search(r"\\b(?:xml|html|csv)\\.destination\\b", content):
+        if re.search(r"\b(?:xml|html|csv)\.destination\b", content):
             remaining.append(str(gradle_file))
     if remaining:
         raise RuntimeError("Unmigrated Gradle report API in: " + ", ".join(sorted(set(remaining))))
