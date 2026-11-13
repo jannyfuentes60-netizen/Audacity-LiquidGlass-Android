@@ -1,48 +1,36 @@
-name: Audacity 4 Android APK
+name: Audacity 4.0.2 Android (Andacious runtime)
 
 "on":
   workflow_dispatch:
   push:
+    branches: [port/andacious-audacity-4]
+    paths:
+      - "android/**"
+      - ".github/workflows/audacity-android.yml"
+      - ".gitmodules"
+  pull_request:
     branches: [main]
     paths:
       - "android/**"
       - ".github/workflows/audacity-android.yml"
-      - "upstream/audacity"
+      - ".gitmodules"
 
 permissions:
   contents: read
 
-concurrency:
-  group: audacity-android-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build-arm64:
-    name: Build Audacity 4.0.2 for Android arm64
+  build:
+    name: Build Audacity 4 Android wrapper APK
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
-    env:
-      QT_VERSION: "6.8.3"
-      ANDROID_NDK_VERSION: "27.2.12479018"
-      ANDROID_PLATFORM: "android-28"
-      CFLAGS: "-D_LARGEFILE_SOURCE=1"
-      QT_HOST_ROOT: "${{ github.workspace }}/.qt/Qt/Qt/6.8.3/gcc_64"
-      QT_ANDROID_ROOT: "${{ github.workspace }}/.qt/Qt/Qt/6.8.3/android_arm64_v8a"
-
+    timeout-minutes: 90
     steps:
-      - name: Checkout source and nested submodules
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 1
+          submodules: false
 
-      - name: Verify pinned upstream revision
-        shell: bash
-        run: |
-          test -f upstream/audacity/CMakeLists.txt
-          test -f upstream/audacity/muse/CMakeLists.txt
-          test -f upstream/audacity/muse_deps/buildtools/manifest.cmake
-          echo "Audacity source: $(git -C upstream/audacity rev-parse HEAD)"
+      - name: Initialize Andacious Android compatibility layer
+        run: git submodule update --init android/andacious
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -53,198 +41,38 @@ jobs:
       - name: Install Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: >-
+          packages: |
             platform-tools
             platforms;android-35
             build-tools;35.0.0
             ndk;27.2.12479018
 
-      - name: Export Android SDK and NDK paths
+      - name: Prepare Andacious and replace its editor with Audacity 4.0.2
+        run: |
+          python3 android/prepare_andacious.py
+          bash -n android/runtime/andacious.sh
+
+      - name: Build Android APK
+        working-directory: android/andacious
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Validate and stage APK
         shell: bash
         run: |
-          test -d "$ANDROID_HOME"
-          test -d "$ANDROID_HOME/build-tools/35.0.0"
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
-          echo "Android SDK: $ANDROID_HOME"
-          echo "Android build-tools: $ANDROID_HOME/build-tools/35.0.0"
-
-      - name: Install Qt desktop host tools
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.3"
-          host: linux
-          target: desktop
-          arch: linux_gcc_64
-          dir: "${{ github.workspace }}/.qt/Qt"
-          modules: "all"
-
-      - name: Install Qt Android arm64 kit
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.3"
-          host: all_os
-          target: android
-          arch: android_arm64_v8a
-          dir: "${{ github.workspace }}/.qt/Qt"
-          modules: "all"
-
-      - name: Verify Qt Android and host CMake components
-        shell: bash
-        run: |
-          echo "Host Qt root: $QT_HOST_ROOT"
-          qml_integration_config="$QT_HOST_ROOT/lib/cmake/Qt6QmlIntegration/Qt6QmlIntegrationConfig.cmake"
-          if [ ! -f "$qml_integration_config" ]; then
-            echo "::error::Missing host Qt QmlIntegration CMake package: $qml_integration_config"
-            find "$QT_HOST_ROOT/lib/cmake" -maxdepth 4 -iname "*QmlIntegration*config.cmake" -print || true
-            exit 1
-          fi
-          echo "Found host Qt QmlIntegration package: $qml_integration_config"
-          qt_test_config="$QT_HOST_ROOT/lib/cmake/Qt6Test/Qt6TestConfig.cmake"
-          if [ ! -f "$qt_test_config" ]; then
-            echo "::error::Missing host Qt Test CMake package: $qt_test_config"
-            find "$QT_HOST_ROOT/lib/cmake" -maxdepth 3 -iname '*Qt6Test*config.cmake' -print || true
-            exit 1
-          fi
-          echo "QT_TEST_DIR=$(dirname "$qt_test_config")" >> "$GITHUB_ENV"
-          echo "Found host Qt Test package: $qt_test_config"
-          echo "Host Qt root: $QT_HOST_ROOT"
-          echo "Android Qt root: $QT_ANDROID_ROOT"
-          # Qt Android ships matching private headers but omits their CMake package exports.
-          # Create interface-only packages that point strictly to the Android kit.
-          python3 android/prepare_qt_private_cmake.py
-          echo "QT_CORE_PRIVATE_DIR=$QT_ANDROID_ROOT/lib/cmake/Qt6CorePrivate" >> "$GITHUB_ENV"
-          echo "QT_GUI_PRIVATE_DIR=$QT_ANDROID_ROOT/lib/cmake/Qt6GuiPrivate" >> "$GITHUB_ENV"
-          qml_models_config="$(find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f -name Qt6QmlModelsConfig.cmake -print -quit)"
-          if [ -z "$qml_models_config" ]; then
-            echo "::error::Qt6QmlMeta dependency Qt6QmlModelsConfig.cmake is absent from both Qt kits"
-            find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -iname '*QmlModel*' -print || true
-            exit 1
-          fi
-          echo "QT_QML_MODELS_DIR=$(dirname "$qml_models_config")" >> "$GITHUB_ENV"
-          qml_workerscript_config="$(find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -type f -name Qt6QmlWorkerScriptConfig.cmake -print -quit)"
-          if [ -z "$qml_workerscript_config" ]; then
-            echo "::error::Qt6QmlMeta requires Qt6QmlWorkerScript, but its CMake package is missing from both Qt kits"
-            find "$QT_HOST_ROOT/lib/cmake" "$QT_ANDROID_ROOT/lib/cmake" -iname '*QmlWorkerScript*' -print || true
-            exit 1
-          fi
-          echo "QT_QML_WORKERSCRIPT_DIR=$(dirname "$qml_workerscript_config")" >> "$GITHUB_ENV"
-          echo "Found Qt QML WorkerScript package: $qml_workerscript_config"
-          qml_plugins_file="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml/Qt6QmlPlugins.cmake"
-          if [ ! -f "$qml_plugins_file" ]; then
-            echo "::error::Missing Qt QML plugin registry: $qml_plugins_file"
-            exit 1
-          fi
-          echo "Qt QML plugin registry found; preserving the vendor-generated file unchanged."
-          grep -n -i "assetdownloader\|qmlmodels\|qmlmeta" "$qml_plugins_file" || true
-          for component in Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Concurrent Qt6OpenGL Qt6Qml Qt6Quick Qt6QuickTemplates2 Qt6QuickControls2 Qt6QuickWidgets Qt6Xml Qt6Svg Qt6ShaderTools Qt6Core5Compat Qt6NetworkAuth Qt6PrintSupport; do
-            config="$QT_ANDROID_ROOT/lib/cmake/$component/${component}Config.cmake"
-            if [ ! -f "$config" ]; then
-              echo "::error::Missing $config"
-              find "$QT_ANDROID_ROOT/lib/cmake" -maxdepth 3 -iname "*${component}*config.cmake" -print || true
-              exit 1
-            fi
-            echo "Found $config"
-          done
-
-      - name: Install native build tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build build-essential pkg-config python3
-
-      - name: Verify Android Qt private header package
-        shell: bash
-        run: |
-          "$QT_ANDROID_ROOT/bin/qt-cmake" \
-            -S android/qt_private_probe \
-            -B build/qt-private-probe \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
-            -DCMAKE_ANDROID_NDK="$ANDROID_NDK_ROOT" \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
-            -DQT_HOST_PATH="$QT_HOST_ROOT" \
-            -DCMAKE_PREFIX_PATH="$QT_ANDROID_ROOT;$QT_HOST_ROOT" \
-            -DQt6_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6" \
-            -DQt6Core_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Core" \
-            -DQt6Gui_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Gui" \
-            -DQt6CorePrivate_DIR="$QT_CORE_PRIVATE_DIR" \
-            -DQt6GuiPrivate_DIR="$QT_GUI_PRIVATE_DIR"
-          cmake --build build/qt-private-probe --parallel 2
-
-      - name: Apply Android-only source compatibility overlay
-        run: python3 android/prepare_android_source.py
-
-      - name: Configure native Audacity 4
-        shell: bash
-        run: |
-          "$QT_ANDROID_ROOT/bin/qt-cmake" \
-            -S upstream/audacity \
-            -B build/android-arm64 \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/build/android-install" \
-            -DANDROID_ABI=arm64-v8a \
-            -DCMAKE_ANDROID_ARCH_ABI=arm64-v8a \
-            -DANDROID_PLATFORM="$ANDROID_PLATFORM" \
-            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
-            -DCMAKE_ANDROID_NDK="$ANDROID_NDK_ROOT" \
-            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
-            -DQT_HOST_PATH="$QT_HOST_ROOT" \
-            -DCMAKE_PREFIX_PATH="$QT_ANDROID_ROOT;$QT_HOST_ROOT" \
-            -DQt6_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6" \
-            -DQt6Core_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Core" \
-            -DQt6Gui_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Gui" \
-            -DQt6Widgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Widgets" \
-            -DQt6Network_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Network" \
-            -DQt6Concurrent_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Concurrent" \
-            -DQt6OpenGL_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6OpenGL" \
-            -DQt6Qml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Qml" \
-            -DQt6QmlIntegration_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlIntegration" \
-            -DQt6QmlMeta_DIR="$QT_HOST_ROOT/lib/cmake/Qt6QmlMeta" \
-            -DQt6QmlModels_DIR="$QT_QML_MODELS_DIR" \
-            -DQt6QmlWorkerScript_DIR="$QT_QML_WORKERSCRIPT_DIR" \
-            -DQt6Test_DIR="$QT_TEST_DIR" \
-            -DQt6CorePrivate_DIR="$QT_CORE_PRIVATE_DIR" \
-            -DQt6GuiPrivate_DIR="$QT_GUI_PRIVATE_DIR" \
-            -DQt6Quick_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Quick" \
-            -DQt6QuickTemplates2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickTemplates2" \
-            -DQt6QuickControls2_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickControls2" \
-            -DQt6QuickWidgets_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6QuickWidgets" \
-            -DQt6Xml_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Xml" \
-            -DQt6Svg_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Svg" \
-            -DQt6ShaderTools_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6ShaderTools" \
-            -DQt6Core5Compat_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6Core5Compat" \
-            -DQt6NetworkAuth_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6NetworkAuth" \
-            -DQt6PrintSupport_DIR="$QT_ANDROID_ROOT/lib/cmake/Qt6PrintSupport" \
-            -DAU4_BUILD_CONFIGURATION=app \
-            -DAU4_BUILD_MODE=release \
-            -DMUSE_COMPILE_USE_CCACHE=OFF \
-            -DMUSE_COMPILE_USE_UNITY=OFF \
-            -DMUSE_ENABLE_UNIT_TESTS=OFF
-
-      - name: Build Audacity Android executable and APK
-        run: cmake --build build/android-arm64 --target apk --parallel 2
-
-      - name: Locate and validate APK
-        shell: bash
-        run: |
-          APK="$(find build/android-arm64 -type f -name '*.apk' -size +1M -print -quit)"
-          if [ -z "$APK" ]; then
-            echo "::error::The native build did not produce an APK. No placeholder artifact will be uploaded."
-            find build/android-arm64 -maxdepth 6 -type f | head -200
+          APK="android/andacious/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -s "$APK" ] || [ "$(stat -c%s "$APK")" -lt 1000000 ]; then
+            echo "::error::A real Android APK was not produced."
+            find android/andacious -path '*/build/outputs/*' -type f -print || true
             exit 1
           fi
           mkdir -p artifacts
-          cp "$APK" artifacts/Audacity-4.0.2-Android-arm64.apk
+          cp "$APK" artifacts/Audacity-4.0.2-Andacious-Android.apk
           ls -lh artifacts
 
-      - name: Upload real APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Audacity-4.0.2-Android-arm64
-          path: artifacts/Audacity-4.0.2-Android-arm64.apk
+          name: Audacity-4.0.2-Andacious-Android
+          path: artifacts/Audacity-4.0.2-Andacious-Android.apk
           if-no-files-found: error
           retention-days: 14

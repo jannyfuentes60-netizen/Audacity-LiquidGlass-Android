@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="$(realpath "$0")"
+sudo rm -f "$SCRIPT_PATH" || true
+
+# Expose Android shared folders inside the Debian userspace.
+for folder in sdcard Documents Downloads Music Pictures Videos DCIM; do
+  if [ -d "/$folder" ] && [ ! -e "$HOME/$folder" ]; then
+    ln -s "/$folder" "$HOME/$folder"
+  fi
+done
+
+xterm &
+
+if [ ! -f /support/gdk_fix ]; then
+  update-mime-database /usr/share/mime
+  find /usr/lib -name gdk-pixbuf-query-loaders -exec {} --update-cache \; 2>/dev/null || true
+  touch /support/gdk_fix
+fi
+
+if [ ! -f /support/full_screen_fix ]; then
+  sed -i 's#</applications>#<application title="Audacity 4.0.2"><position force="yes"><x>0</x><y>0</y></position><size><width>100%</width><height>100%</height></size></application></applications>#g' /etc/xdg/openbox/rc.xml
+  openbox --reconfigure || true
+  touch /support/full_screen_fix
+fi
+
+APP_HOME="$HOME/.local/share/audacity-4.0.2"
+APPIMAGE="$APP_HOME/audacity-linux-4.0.2-aarch64.AppImage"
+APP_DIR="$APP_HOME/squashfs-root"
+APPIMAGE_URL="https://github.com/audacity/audacity/releases/download/Audacity-4.0.2/audacity-linux-4.0.2-aarch64.AppImage"
+CHECKSUMS_URL="https://github.com/audacity/audacity/releases/download/Audacity-4.0.2/CHECKSUMS.txt"
+
+mkdir -p "$APP_HOME"
+
+if [ ! -s "$APPIMAGE" ]; then
+  echo "Downloading official Audacity 4.0.2 ARM64..."
+  curl -fL --retry 3 --retry-delay 2 "$APPIMAGE_URL" -o "$APPIMAGE"
+  CHECKSUMS="$(curl -fsSL --retry 3 "$CHECKSUMS_URL")"
+  EXPECTED="$(printf '%s\n' "$CHECKSUMS" | awk '$2 == "audacity-linux-4.0.2-aarch64.AppImage" || $2 == "*audacity-linux-4.0.2-aarch64.AppImage" { print $1; exit }')"
+  if [ -z "$EXPECTED" ]; then
+    echo "ERROR: Audacity release checksum entry was not found."
+    rm -f "$APPIMAGE"
+    exit 1
+  fi
+  printf '%s  %s\n' "$EXPECTED" "$APPIMAGE" | sha256sum -c -
+  chmod 755 "$APPIMAGE"
+fi
+
+if [ ! -x "$APP_DIR/AppRun" ]; then
+  echo "Extracting Audacity 4.0.2 (FUSE is not required)..."
+  TMP_DIR="$(mktemp -d "$APP_HOME/extract.XXXXXX")"
+  trap 'rm -rf "$TMP_DIR"' EXIT
+  (cd "$TMP_DIR" && "$APPIMAGE" --appimage-extract >/dev/null)
+  if [ ! -x "$TMP_DIR/squashfs-root/AppRun" ]; then
+    echo "ERROR: AppImage extraction did not produce AppRun."
+    exit 1
+  fi
+  rm -rf "$APP_DIR"
+  mv "$TMP_DIR/squashfs-root" "$APP_DIR"
+  rm -rf "$TMP_DIR"
+  trap - EXIT
+fi
+
+echo "Launching the original Audacity 4.0.2 application..."
+exec "$APP_DIR/AppRun" "$@"

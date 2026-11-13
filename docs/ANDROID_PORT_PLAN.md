@@ -1,61 +1,47 @@
-# Audacity 4 Android port plan
+# Audacity 4.0.2 Android execution plan
 
 ## Objective
 
-Run the original Audacity 4 Qt application and its real audio engine on Android. The objective is not to reproduce the UI. Keep upstream widgets, menus, toolbars, workspaces, track/clip views, effect interfaces and command implementations wherever the platform allows.
+Run the original Audacity 4.0.2 application and audio engine on Android while reusing Andacious' existing Android/Linux compatibility infrastructure. Do not ship the old Audacity version as the editor and do not recreate Audacity's UI.
 
-## Upstream baseline
+## Selected architecture
 
-- Repository: https://github.com/audacity/audacity
-- Release baseline: `Audacity-4.0.2`
-- Toolkit: Qt 6
-- Build system: CMake
-- Platform status: upstream release targets desktop operating systems; Android is an experimental port target here.
+1. Android app shell and runtime: Andacious.
+2. Linux userspace: Debian ARM64 managed by UserLAnd.
+3. Desktop display/input: the existing VNC-based display and touch/keyboard forwarding from Andacious.
+4. Editor: official Audacity 4.0.2 AArch64 AppImage.
+5. AppImage handling: download on first launch, verify using the official release checksum file, extract to the app user's home directory, then execute the extracted AppRun. Extraction avoids requiring FUSE.
 
-Pin the release tag and submodules before applying patches. Never silently track a moving branch for a reproducible build.
+## Why this replaces the previous build route
 
-## Porting strategy
+The previous branch attempted to compile the full Audacity dependency graph directly for Android. That repeatedly stopped in desktop-oriented dependencies. The AArch64 Linux release asset allows us to keep the original Audacity program while moving the compatibility boundary to Andacious' Linux runtime.
 
-### Gate A — source and build graph
+## Implementation gates
 
-- Clone the official repository recursively at the pinned release.
-- Record the exact commit and submodule revisions.
-- Configure Qt for Android with a matching Android SDK/NDK toolchain.
-- Enumerate CMake targets, compile definitions and third-party dependencies.
-- Categorize each dependency: Android-ready, needs configuration, needs a port, or desktop-only.
-- Do not replace the upstream Qt UI to get past a dependency failure.
+### Gate A — Android runtime build
+- Reuse the Andacious Android project and its UserLAnd/VNC integration.
+- Keep its runtime responsibilities, but change the visible app identity to Audacity 4.
+- Build an ARM64-capable Android APK in CI.
 
-### Gate B — smallest native Qt build
+### Gate B — replace the launched editor
+- Replace the Andacious launch script so it downloads and verifies Audacity 4.0.2 AArch64.
+- Extract the AppImage without FUSE.
+- Launch the extracted original Audacity application.
+- Do not invoke the Debian repository's older audacity package.
 
-- Create a minimal Android package using Qt's Android deployment flow.
-- Bring up the original Audacity Qt application entry point.
-- Resolve missing platform abstractions incrementally.
-- Verify scaling, orientation, keyboard, touch and lifecycle.
-- Do not publish a fake editor shell as an Audacity APK.
+### Gate C — device validation
+- Verify the original Audacity 4.0.2 interface appears.
+- Verify touch, keyboard, zoom, pan and screen sizing.
+- Verify microphone capture, playback, audio routing and latency.
+- Verify Android storage access for import/export and project save/open.
+- Verify app pause/resume and recovery after interruptions.
 
-### Gate C — audio platform
+### Gate D — feature validation
+Test real upstream behavior: multitrack editing, clip operations, undo/redo, transport, recording, effects, generators, analyzers, import/export, project save/reopen and recovery.
 
-- Audit upstream audio backends and device abstraction.
-- Implement or select Android-compatible capture/playback backends.
-- Handle audio focus, route changes, microphone permission, interruptions and app lifecycle.
-- Verify latency, sample rates, channel layouts and stable playback/recording.
+## Current constraints
 
-### Gate D — file and project workflows
-
-- Integrate Android document/content URI access for open/import/export.
-- Preserve the upstream project format and save/recovery logic.
-- Test .aup4 open/save and .aup3 conversion.
-- Avoid broad all-files permission when the Storage Access Framework or MediaStore is sufficient.
-
-### Gate E — feature verification
-
-Test real upstream operations: clip selection and grouping, move/trim/split, undo/redo, transport/seek/loop, recording, effects, generators, analyzers, import/export and project recovery. Record unsupported desktop-only features rather than showing nonfunctional controls.
-
-## Rules
-
-1. The original Audacity 4 interface is the UI source of truth.
-2. No Flutter editor, HTML editor, or independently recreated waveform/editor.
-3. No mock buttons presented as working functionality.
-4. Android adaptations must preserve the underlying Audacity command and project behavior.
-5. Each upstream patch must be small, documented and reproducible.
-6. Do not label an APK successful until the real native app installs and launches on a physical Android device.
+- This is a Linux desktop application running through a compatibility layer, not a native Android Qt build.
+- The Andacious repository references a UserLAndLibrary submodule that is not currently publicly fetchable at its pinned URL. The build preparation uses a public historical mirror and adapts the small API differences. This must be treated as a compatibility risk and checked by CI.
+- The official AppImage may still need system libraries from Debian. Missing runtime libraries must be resolved based on actual launch logs, not guessed.
+- A successful APK build does not prove the AppImage launches or that audio I/O works. Physical-device tests remain mandatory.

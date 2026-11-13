@@ -1,46 +1,26 @@
-# Audacity 4 for Android
+# Audacity 4.0.2 for Android
 
-This repository is focused on a **native Android port of the official Audacity 4 codebase**.
+This branch changes the Android execution strategy. Instead of compiling every Audacity desktop dependency against the Android NDK, it reuses the Android/Linux compatibility layer from Andacious and replaces the Audacity program launched inside its Debian ARM64 environment with the official Audacity 4.0.2 AArch64 AppImage.
 
-## Non-negotiable direction
+## Intended architecture
 
-- Use the official **Audacity 4.0.2** source as the application and audio-engine foundation.
-- Preserve Audacity's original Qt interface, menus, toolbars, track view, clip editing model, effects, project handling and commands.
-- Do not recreate the editor in Flutter, HTML or a custom imitation UI.
-- Do not replace Audacity's interface with Liquid Glass. The original Audacity 4 interface is the target.
-- Make only platform adaptations required for Android: touch input, screen sizing, Android audio devices, permissions, lifecycle and file access.
-- Keep upstream code and license notices intact; document every Android-specific patch.
+- **Android shell and compatibility layer:** Andacious (UserLAnd, Debian ARM64, VNC-based desktop display, touch/keyboard forwarding and storage integration).
+- **Actual editor:** official Audacity 4.0.2 Linux ARM64 build. The old Audacity package is not the editor target.
+- **First launch:** download the 4.0.2 AArch64 AppImage, verify it against the release checksums, extract it (so FUSE is not required), and launch its original AppRun.
+- **Interface and engine:** the original Audacity 4.0.2 desktop application, not a recreated editor UI.
 
-## Technical direction
+Andacious is a compatibility/runtime layer; it is not a separate audio engine. The plan is to reuse the Android/Linux execution infrastructure and replace the application running inside it.
 
-Audacity 4 is built on Qt. The Android project must adapt the upstream Qt/CMake application rather than wrap a desktop executable or rebuild its interface in another toolkit.
+## Important distinction
 
-The official Audacity 4 build instructions currently describe desktop toolchains. Upstream does not provide an official Android build target. This port therefore requires auditing dependencies, adapting unsupported platform components, integrating Qt for Android, adapting audio I/O and validating the original application UI on-device.
+This is **not a native Qt-for-Android port**. It runs the Linux ARM64 desktop build inside Andacious' Linux environment and displays it through the existing Android remote-desktop layer. This is a much more practical route to test first, but touch ergonomics, audio routing, storage access, performance and lifecycle still need physical-device validation.
 
-## Milestones
+## Build
 
-1. Pin the official Audacity 4.0.2 source and its submodules.
-2. Audit CMake targets and dependencies for Android compatibility.
-3. Produce a minimal Qt-for-Android build of the unmodified upstream application shell.
-4. Resolve platform blockers without replacing Audacity's UI or editing model.
-5. Integrate Android audio input/output, focus, permissions and MediaStore/document URI access.
-6. Test project open/save, import/export, transport and editing on a physical Android device.
-7. Expand verification across effects, generators, analyzers, plugins and remaining commands.
+The port/andacious-audacity-4 branch builds the Android wrapper APK from the Andacious source submodule. The preparation step also supplies the publicly available UserLAndLibrary source mirror required by the Andacious project and applies the small API compatibility changes needed by that mirror.
 
-## Current status
+The APK build is not considered successful until GitHub Actions produces a real APK. The runtime is not considered verified until Audacity 4.0.2 launches and passes audio/file workflow tests on an Android device.
 
-The previous Flutter/LiqKit screen was only a mock interface and did not contain the Audacity engine. It is not the target implementation and must not be presented as a working Audacity port.
+## Licensing
 
-The Android port has **not yet been built**. No feature is marked implemented or verified until it works through the real Audacity 4 code on Android.
-
-See [docs/ANDROID_PORT_PLAN.md](docs/ANDROID_PORT_PLAN.md) and [docs/PORTING_STATUS.md](docs/PORTING_STATUS.md).
-
-## Upstream references
-
-- Audacity source: https://github.com/audacity/audacity
-- Audacity 4.0.2 release: https://github.com/audacity/audacity/releases/tag/Audacity-4.0.2
-- Audacity 4 build guide: https://github.com/audacity/audacity/blob/master/BUILDING.md
-- Audacity 4.0 release notes: https://www.audacityteam.org/changelog/4.0.0/
-- Qt for Android: https://doc.qt.io/qt-6/android.html
-
-Audacity is open source under GPLv3, with third-party components carrying their own license terms. Preserve all applicable notices and comply with the upstream license when distributing modified builds.
+Audacity is GPLv3. Andacious and UserLAnd components have their own open-source notices and licenses. Keep upstream notices and source references intact when modifying or distributing the combined application.

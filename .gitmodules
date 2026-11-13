@@ -1,3 +1,6 @@
 [submodule "upstream/audacity"]
 	path = upstream/audacity
 	url = https://github.com/audacity/audacity.git
+[submodule "android/andacious"]
+	path = android/andacious
+	url = https://github.com/CypherpunkArmory/Andacious.git
