@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 ANDACIOUS = ROOT / "android" / "andacious"
@@ -179,6 +180,142 @@ def main():
     ensure_android_namespaces()
     patch_gradle_report_api()
     patch_android_build_config()
+
+    # Replace the removed Kotlin Android Extensions synthetic view accessors
+    # with typed findViewById properties. This keeps the existing layouts and
+    # behavior intact without depending on the removed compiler plugin.
+    android_ns = "{http://schemas.android.com/apk/res/android}"
+    view_types = {
+        "Toolbar": "androidx.appcompat.widget.Toolbar",
+        "ConstraintLayout": "androidx.constraintlayout.widget.ConstraintLayout",
+        "BottomNavigationView": "com.google.android.material.bottomnavigation.BottomNavigationView",
+        "TextInputEditText": "com.google.android.material.textfield.TextInputEditText",
+        "FloatingActionButton": "com.google.android.material.floatingactionbutton.FloatingActionButton",
+        "SwipeRefreshLayout": "androidx.swiperefreshlayout.widget.SwipeRefreshLayout",
+        "RecyclerView": "androidx.recyclerview.widget.RecyclerView",
+    }
+    android_widgets = {
+        "TextView", "EditText", "Button", "ImageButton", "ImageView", "CheckBox",
+        "RadioButton", "RadioGroup", "Spinner", "ListView", "GridView", "LinearLayout",
+        "RelativeLayout", "FrameLayout", "ScrollView", "HorizontalScrollView",
+        "ToggleButton", "ProgressBar", "Switch", "SeekBar", "ViewFlipper",
+    }
+
+    def resolve_view_type(element):
+        tag = element.tag.rsplit("}", 1)[-1]
+        if tag == "view":
+            tag = element.attrib.get("class", "android.view.View")
+        if tag == "fragment":
+            return "android.view.View"
+        if "." in tag:
+            return tag
+        if tag in view_types:
+            return view_types[tag]
+        if tag in android_widgets:
+            return "android.widget." + tag
+        if tag in ("View", "ViewStub"):
+            return "android.view." + tag
+        return "android.view.View"
+
+    migrated_synthetics = 0
+    for source in (LIBRARY / "app" / "src" / "main").rglob("*.kt"):
+        source_text = source.read_text(encoding="utf-8", errors="ignore")
+        imports = re.findall(
+            r"(?m)^import kotlinx\\.android\\.synthetic\\.main\\.([A-Za-z0-9_]+)\\.\\*[^\\n]*\\n?",
+            source_text,
+        )
+        if not imports:
+            continue
+
+        id_types = {}
+        for layout_name in imports:
+            layout_file = LIBRARY / "app" / "src" / "main" / "res" / "layout" / (layout_name + ".xml")
+            if not layout_file.is_file():
+                raise RuntimeError(f"Synthetic import references missing layout: {layout_file}")
+            try:
+                root = ET.parse(layout_file).getroot()
+            except ET.ParseError as error:
+                raise RuntimeError(f"Cannot parse synthetic layout {layout_file}: {error}") from error
+            for element in root.iter():
+                resource_id = element.attrib.get(android_ns + "id", "")
+                match = re.fullmatch(r"@\\+id/([A-Za-z0-9_]+)", resource_id)
+                if not match:
+                    continue
+                view_id = match.group(1)
+                view_type = resolve_view_type(element)
+                if view_id in id_types and id_types[view_id] != view_type:
+                    raise RuntimeError(
+                        f"Conflicting synthetic view types for {view_id} in {source}: "
+                        f"{id_types[view_id]} vs {view_type}"
+                    )
+                id_types[view_id] = view_type
+
+        source_without_imports = re.sub(
+            r"(?m)^import kotlinx\\.android\\.synthetic\\.main\\.[^\\n]+\\n?",
+            "",
+            source_text,
+        )
+        used = []
+        for view_id, view_type in id_types.items():
+            if re.search(r"(?<![A-Za-z0-9_.])" + re.escape(view_id) + r"(?![A-Za-z0-9_])", source_without_imports):
+                used.append((view_id, view_type))
+        if not used:
+            source.write_text(source_without_imports, encoding="utf-8")
+            migrated_synthetics += 1
+            continue
+
+        class_name = source.stem
+        class_match = re.search(
+            r"(?m)^class\\s+" + re.escape(class_name) + r"\\b[^\\n{]*\\{\\s*",
+            source_without_imports,
+        )
+        if not class_match:
+            raise RuntimeError(f"Cannot locate class declaration for synthetic migration: {source}")
+        is_activity = class_name == "MainActivity"
+        root_expression = "findViewById" if is_activity else "requireView().findViewById"
+        getters = "\\n" + "\\n".join(
+            f"    private val {view_id}: {view_type} get() = {root_expression}(R.id.{view_id})"
+            for view_id, view_type in used
+        ) + "\\n\\n"
+        migrated = (
+            source_without_imports[:class_match.end()]
+            + getters
+            + source_without_imports[class_match.end():]
+        )
+        source.write_text(migrated, encoding="utf-8")
+        print(
+            f"Migrated {len(used)} synthetic view accessor(s) in {source.relative_to(LIBRARY)}",
+            flush=True,
+        )
+        migrated_synthetics += 1
+
+    # The Parcelize compiler plugin was also bundled in Android Extensions.
+    # Move its import to the supported standalone plugin if this source uses it.
+    parcelize_used = False
+    for source in (LIBRARY / "app" / "src" / "main").rglob("*.kt"):
+        source_text = source.read_text(encoding="utf-8", errors="ignore")
+        if "kotlinx.android.parcel.Parcelize" in source_text:
+            source.write_text(
+                source_text.replace(
+                    "kotlinx.android.parcel.Parcelize",
+                    "kotlinx.parcelize.Parcelize",
+                ),
+                encoding="utf-8",
+            )
+            parcelize_used = True
+    if parcelize_used:
+        userland_content = userland_gradle.read_text(encoding="utf-8")
+        if "kotlin-parcelize" not in userland_content:
+            userland_content += "\\napply plugin: 'kotlin-parcelize'\\n"
+            userland_gradle.write_text(userland_content, encoding="utf-8")
+
+    # Verify that no removed Android Extensions imports remain.
+    remaining_synthetics = []
+    for source in (LIBRARY / "app" / "src" / "main").rglob("*.kt"):
+        if "kotlinx.android.synthetic" in source.read_text(encoding="utf-8", errors="ignore"):
+            remaining_synthetics.append(str(source))
+    if remaining_synthetics:
+        raise RuntimeError("Unmigrated Kotlin synthetic imports: " + ", ".join(remaining_synthetics))
 
     # Generate the FreeRDPCore Gradle project before dependency resolution.
     # Build only ARM64 and skip the unrelated Cerbero/GStreamer/SPICE stack.
