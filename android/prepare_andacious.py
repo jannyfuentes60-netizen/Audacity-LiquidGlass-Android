@@ -213,18 +213,18 @@ def main():
     userland_gradle = LIBRARY / "app" / "build.gradle"
     userland_content = userland_gradle.read_text(encoding="utf-8")
     userland_content = re.sub(
-        r"(?m)^\\s*apply plugin: ['\\"]kotlin-android-extensions['\\"]\\s*\\n?",
+        r"(?m)^\s*apply plugin: ['\"]kotlin-android-extensions['\"]\s*\n?",
         "",
         userland_content,
     )
     userland_content = re.sub(
-        r"(?s)\\nandroidExtensions\\s*\\{.*?\\n\\}\\s*",
-        "\\n",
+        r"(?s)\nandroidExtensions\s*\{.*?\n\}\s*",
+        "\n",
         userland_content,
         count=1,
     )
     userland_gradle.write_text(userland_content, encoding="utf-8")
-    if "kotlin-android-extensions" in userland_content or re.search(r"(?m)^androidExtensions\\s*\\{", userland_content):
+    if "kotlin-android-extensions" in userland_content or re.search(r"(?m)^androidExtensions\s*\{", userland_content):
         raise RuntimeError("Obsolete Kotlin Android Extensions DSL remains in UserLAndLibrary/app/build.gradle")
 
     # Adapt Andacious' wrapper to the public mirror's package and App model.
