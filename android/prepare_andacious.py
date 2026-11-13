@@ -180,6 +180,63 @@ def main():
     patch_gradle_report_api()
     patch_android_build_config()
 
+    # Generate the FreeRDPCore Gradle project before dependency resolution.
+    # Build only ARM64 and skip the unrelated Cerbero/GStreamer/SPICE stack.
+    native_libs = LIBRARY / "remote-desktop-clients" / "remoteClientLib" / "jni" / "libs"
+    deps_conf = native_libs / "build-deps.conf"
+    deps_script = native_libs / "build-deps.sh"
+    if not deps_conf.is_file() or not deps_script.is_file():
+        raise SystemExit("The pinned remote-desktop-clients native dependency scripts are missing.")
+
+    deps_content = deps_conf.read_text(encoding="utf-8")
+    deps_content, changed = re.subn(r'(?m)^abis="[^"]*"', 'abis="arm64-v8a"', deps_content, count=1)
+    if changed != 1:
+        raise RuntimeError("Could not restrict native dependency ABI list to arm64-v8a.")
+    deps_conf.write_text(deps_content, encoding="utf-8")
+
+    deps_source = deps_script.read_text(encoding="utf-8")
+    original = """# Parse command-line options
+parallel=""
+export ANDROID_NDK=$(install_ndk ./ ${ndk_version})
+"""
+    replacement = """# Parse command-line options
+parallel=""
+if [ "$1" = "freerdp-only" ]; then
+    build_freerdp
+    exit 0
+fi
+export ANDROID_NDK=$(install_ndk ./ ${ndk_version})
+"""
+    if original not in deps_source:
+        raise RuntimeError("Could not add the isolated FreeRDP build mode to build-deps.sh.")
+    deps_source = deps_source.replace(original, replacement, 1)
+
+    old_config_patch = """               -e 's/WITH_JPEG=.*/WITH_JPEG=1/'\\
+               -e 's/WITH_OPENH264=.*/WITH_OPENH264=1/'\\
+               -e 's/OPENH264_TAG=.*/OPENH264_TAG=v2.1.1/'\\
+               -e 's/NDK_TARGET=26/NDK_TARGET=21/'\\
+"""
+    new_config_patch = """               -e 's/WITH_JPEG=.*/WITH_JPEG=0/'\\
+               -e 's/WITH_OPENH264=.*/WITH_OPENH264=0/'\\
+               -e 's/WITH_OPENSSL=.*/WITH_OPENSSL=0/'\\
+               -e 's/BUILD_ARCH=.*/BUILD_ARCH="arm64-v8a"/'\\
+               -e 's/NDK_TARGET=26/NDK_TARGET=21/'\\
+"""
+    if old_config_patch not in deps_source:
+        raise RuntimeError("Could not apply the ARM64/minimal FreeRDP build configuration.")
+    deps_source = deps_source.replace(old_config_patch, new_config_patch, 1)
+    deps_script.write_text(deps_source, encoding="utf-8")
+
+    # Detect remaining Kotlin synthetic imports before the compiler does.
+    synthetic_hits = []
+    for source in (LIBRARY / "app" / "src").rglob("*.kt"):
+        if "kotlinx.android.synthetic" in source.read_text(encoding="utf-8", errors="ignore"):
+            synthetic_hits.append(str(source))
+    if synthetic_hits:
+        raise RuntimeError(
+            "Kotlin synthetic view imports still require migration: " + ", ".join(synthetic_hits)
+        )
+
     # These legacy Termux modules apply obsolete publishing plugins. They
     # are not needed to build the Android app and pull the unavailable Groovy
     # http-builder 0.7.2 artifact. Remove only those publishing declarations
