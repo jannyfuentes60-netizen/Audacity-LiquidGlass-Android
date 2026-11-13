@@ -52,6 +52,20 @@ jobs:
           python3 android/prepare_andacious.py
           bash -n android/runtime/andacious.sh
 
+      - name: Resolve dependency graphs for every included module
+        working-directory: android/andacious
+        run: |
+          ./gradlew --no-daemon --stacktrace --continue \
+            :app:dependencies \
+            :UserLAndLibrary:app:dependencies \
+            :UserLAndLibrary:terminal-app:dependencies \
+            :UserLAndLibrary:terminal-view:dependencies \
+            :UserLAndLibrary:terminal-emulator:dependencies \
+            :UserLAndLibrary:bVNC:dependencies \
+            :UserLAndLibrary:pubkeyGenerator:dependencies \
+            :UserLAndLibrary:remoteClientLib:dependencies \
+            :UserLAndLibrary:remoteClientLib:jni:libs:deps:FreeRDP:client:Android:Studio:freeRDPCore:dependencies
+
       - name: Build Android APK
         working-directory: android/andacious
         run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
