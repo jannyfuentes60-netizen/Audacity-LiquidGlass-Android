@@ -1,0 +1,19 @@
+name: audacity_library
+description: Flutter library shell for Audacity 4 running in the Andacious Linux runtime.
+publish_to: "none"
+version: 0.1.0+1
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  liquid_glass_widgets: ^1.17.3
+  device_info_plus: ^12.3.0
+  shared_preferences: ^2.5.3
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
