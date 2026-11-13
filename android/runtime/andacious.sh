@@ -29,21 +29,14 @@ APP_HOME="$HOME/.local/share/audacity-4.0.2"
 APPIMAGE="$APP_HOME/audacity-linux-4.0.2-aarch64.AppImage"
 APP_DIR="$APP_HOME/squashfs-root"
 APPIMAGE_URL="https://github.com/audacity/audacity/releases/download/Audacity-4.0.2/audacity-linux-4.0.2-aarch64.AppImage"
-CHECKSUMS_URL="https://github.com/audacity/audacity/releases/download/Audacity-4.0.2/CHECKSUMS.txt"
+EXPECTED_SHA256="88b1e16dd40a5b7d36bec5789b03f66bda34a7b964e19f338951bf6034d9db9c"
 
 mkdir -p "$APP_HOME"
 
 if [ ! -s "$APPIMAGE" ]; then
   echo "Downloading official Audacity 4.0.2 ARM64..."
   curl -fL --retry 3 --retry-delay 2 "$APPIMAGE_URL" -o "$APPIMAGE"
-  CHECKSUMS="$(curl -fsSL --retry 3 "$CHECKSUMS_URL")"
-  EXPECTED="$(printf '%s\n' "$CHECKSUMS" | awk '$2 == "audacity-linux-4.0.2-aarch64.AppImage" || $2 == "*audacity-linux-4.0.2-aarch64.AppImage" { print $1; exit }')"
-  if [ -z "$EXPECTED" ]; then
-    echo "ERROR: Audacity release checksum entry was not found."
-    rm -f "$APPIMAGE"
-    exit 1
-  fi
-  printf '%s  %s\n' "$EXPECTED" "$APPIMAGE" | sha256sum -c -
+  printf '%s  %s\n' "$EXPECTED_SHA256" "$APPIMAGE" | sha256sum -c -
   chmod 755 "$APPIMAGE"
 fi
 
