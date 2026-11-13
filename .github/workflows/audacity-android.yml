@@ -52,6 +52,22 @@ jobs:
           python3 android/prepare_andacious.py
           bash -n android/runtime/andacious.sh
 
+      - name: Build the required ARM64 FreeRDP Gradle module
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git wget unzip patch
+          export ANDROID_SDK="$ANDROID_HOME"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          cd android/andacious/UserLAndLibrary/remote-desktop-clients/remoteClientLib/jni/libs
+          bash -n build-deps.sh
+          ./build-deps.sh freerdp-only
+          MODULE="deps/FreeRDP/client/Android/Studio/freeRDPCore"
+          test -f "$MODULE/build.gradle"
+          test -f "$MODULE/src/main/AndroidManifest.xml"
+          test -d "$MODULE/src/main/jniLibs/arm64-v8a"
+          find "$MODULE/src/main/jniLibs/arm64-v8a" -maxdepth 1 -type f -name '*.so' -print -quit | grep -q .
+
       - name: Resolve dependency graphs for every included module
         working-directory: android/andacious
         run: |
