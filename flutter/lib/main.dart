@@ -18,7 +18,13 @@ extension GlassTierLabel on GlassTier {
         GlassTier.minimal => 'Ligera',
       };
 
-  GlassQuality get quality => switch (this) {\n        GlassTier.premium => GlassQuality.premium,\n        GlassTier.standard => GlassQuality.standard,\n        GlassTier.minimal => GlassQuality.minimal,\n      };\n\n  String get description => switch (this) {
+  GlassQuality get quality => switch (this) {
+        GlassTier.premium => GlassQuality.premium,
+        GlassTier.standard => GlassQuality.standard,
+        GlassTier.minimal => GlassQuality.minimal,
+      };
+
+  String get description => switch (this) {
         GlassTier.premium => 'Refacción, iluminación y lentes Liquid Glass completos.',
         GlassTier.standard => 'Efectos equilibrados para mantener la biblioteca fluida.',
         GlassTier.minimal => 'Efectos reducidos para dispositivos con recursos limitados.',
@@ -94,11 +100,7 @@ class DeviceAssessment {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LiquidGlassWidgets.initialize();
-  runApp(LiquidGlassWidgets.wrap(
-    child: const AudacityLibraryApp(),
-    brightnessResolver: Theme.maybeBrightnessOf,
-    theme: const GlassThemeData.ios27(),
-  ));
+  runApp(const AudacityLibraryApp());
 }
 
 class AudacityLibraryApp extends StatefulWidget {
