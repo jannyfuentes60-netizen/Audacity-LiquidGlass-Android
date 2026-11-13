@@ -14,7 +14,7 @@ Run the original Audacity 4.0.2 application and audio engine on Android while re
 
 ## Why this replaces the previous build route
 
-The previous branch attempted to compile the full Audacity dependency graph directly for Android. That repeatedly stopped in desktop-oriented dependencies. The AArch64 Linux release asset allows us to keep the original Audacity program while moving the compatibility boundary to Andacious' Linux runtime.
+The previous branch attempted to compile the full Audacity dependency graph directly for Android. That repeatedly stopped in desktop-oriented dependencies. The AArch64 Linux release asset allows us to keep the original Audacity program while moving the compatibility boundary to Andacious' Linux runtime. The official ARM64 AppImage is marked as having no plugin support, so third-party plugin compatibility is not part of the initial acceptance target.
 
 ## Implementation gates
 
