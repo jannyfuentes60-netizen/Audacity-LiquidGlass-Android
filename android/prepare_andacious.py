@@ -225,6 +225,11 @@ export ANDROID_NDK=$(install_ndk ./ ${ndk_version})
     if old_config_patch not in deps_source:
         raise RuntimeError("Could not apply the ARM64/minimal FreeRDP build configuration.")
     deps_source = deps_source.replace(old_config_patch, new_config_patch, 1)
+    deps_source = deps_source.replace(
+        "export OPENH264_NDK=$(install_ndk ../../ ${freerdp_openh264_ndk_version})",
+        "export OPENH264_NDK=$ANDROID_NDK",
+        1,
+    )
     deps_script.write_text(deps_source, encoding="utf-8")
 
     # Detect remaining Kotlin synthetic imports before the compiler does.
