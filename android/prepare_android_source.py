@@ -248,7 +248,7 @@ edit(
     # Force this at the final nested configure boundary, rather than relying
     # on a platform override whose BD_OS may differ across manifest versions.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_FILE=ON -DwxUSE_TEXTBUFFER=ON -DwxUSE_TEXTFILE=ON -DwxUSE_CONFIG=ON -DwxUSE_GUI=OFF)
+        list(APPEND _dep_cmake_args -DwxUSE_INTL=ON -DwxUSE_FILE=ON -DwxUSE_TEXTBUFFER=ON -DwxUSE_TEXTFILE=ON -DwxUSE_CONFIG=ON -DwxUSE_DYNLIB_CLASS=ON -DwxUSE_GUI=OFF)
         message(STATUS "[wxwidgets] forcing wxUSE_INTL=ON for Android")
     endif()
 
@@ -266,7 +266,7 @@ edit(
     # This catches a silently ignored or overridden wxUSE_INTL cache option
     # before spending time compiling wxWidgets and Audacity.
     if(BD_NAME STREQUAL "wxwidgets" AND CMAKE_SYSTEM_NAME STREQUAL "Android")
-        foreach(_wx_option wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+        foreach(_wx_option wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG wxUSE_DYNLIB_CLASS)
             file(STRINGS "${BUILD}/CMakeCache.txt" _wx_option_cache REGEX "^${_wx_option}:BOOL=")
             if(NOT _wx_option_cache STREQUAL "${_wx_option}:BOOL=ON")
                 message(FATAL_ERROR "[wxwidgets] required option ${_wx_option} was disabled or not retained by wxWidgets CMake: ${_wx_option_cache}")
@@ -281,7 +281,7 @@ edit(
             message(FATAL_ERROR "[wxwidgets] expected generated setup.h is missing: ${_wx_setup_header}")
         endif()
         file(READ "${_wx_setup_header}" _wx_setup_text)
-        foreach(_wx_macro wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG)
+        foreach(_wx_macro wxUSE_INTL wxUSE_FILE wxUSE_TEXTBUFFER wxUSE_TEXTFILE wxUSE_CONFIG wxUSE_DYNLIB_CLASS)
             if(NOT _wx_setup_text MATCHES "#define ${_wx_macro} 1")
                 message(FATAL_ERROR "[wxwidgets] actual base-unicode setup.h does not enable ${_wx_macro}")
             endif()
@@ -585,6 +585,23 @@ edit(
         file(READ "${_wx_android_chkconf}" _wx_android_chkconf_text)
         # Replace the individual directives instead of matching a multiline
         # regex: CMake regex handling of CR/LF varies across versions.
+        # Audacity compiles ModuleManager.cpp even on Android. Keep the
+        # wxDynamicLibrary API available (Android's NDK provides dlopen),
+        # while wxUSE_DYNAMIC_LOADER remains disabled because desktop plugin
+        # discovery/management is not part of this Android port.
+        string(REPLACE
+            "#undef wxUSE_DYNLIB_CLASS"
+            "// wxUSE_DYNLIB_CLASS retained for Android dlopen support"
+            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        string(REPLACE
+            "#define wxUSE_DYNLIB_CLASS 0"
+            "// wxUSE_DYNLIB_CLASS remains enabled"
+            _wx_android_chkconf_text "${_wx_android_chkconf_text}")
+        if(_wx_android_chkconf_text MATCHES "#define wxUSE_DYNLIB_CLASS 0"
+           OR _wx_android_chkconf_text MATCHES "#undef wxUSE_DYNLIB_CLASS")
+            message(FATAL_ERROR "[wxwidgets] Android chkconf.h still disables wxDynamicLibrary")
+        endif()
+
         foreach(_wx_feature CONFIG INTL)
             string(REPLACE
                 "#undef wxUSE_${_wx_feature}"
