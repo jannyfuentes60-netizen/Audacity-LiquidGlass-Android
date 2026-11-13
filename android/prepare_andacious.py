@@ -221,7 +221,7 @@ def main():
     for source in (LIBRARY / "app" / "src" / "main").rglob("*.kt"):
         source_text = source.read_text(encoding="utf-8", errors="ignore")
         imports = re.findall(
-            r"(?m)^import kotlinx\\.android\\.synthetic\\.main\\.([A-Za-z0-9_]+)\\.\\*[^\\n]*\\n?",
+            r"(?m)^import kotlinx\.android\.synthetic\.main\.([A-Za-z0-9_]+)\.\*[^\n]*\n?",
             source_text,
         )
         if not imports:
@@ -238,7 +238,7 @@ def main():
                 raise RuntimeError(f"Cannot parse synthetic layout {layout_file}: {error}") from error
             for element in root.iter():
                 resource_id = element.attrib.get(android_ns + "id", "")
-                match = re.fullmatch(r"@\\+id/([A-Za-z0-9_]+)", resource_id)
+                match = re.fullmatch(r"@\+id/([A-Za-z0-9_]+)", resource_id)
                 if not match:
                     continue
                 view_id = match.group(1)
@@ -251,7 +251,7 @@ def main():
                 id_types[view_id] = view_type
 
         source_without_imports = re.sub(
-            r"(?m)^import kotlinx\\.android\\.synthetic\\.main\\.[^\\n]+\\n?",
+            r"(?m)^import kotlinx\.android\.synthetic\.main\.[^\n]+\n?",
             "",
             source_text,
         )
@@ -266,17 +266,17 @@ def main():
 
         class_name = source.stem
         class_match = re.search(
-            r"(?m)^class\\s+" + re.escape(class_name) + r"\\b[^\\n{]*\\{\\s*",
+            r"(?m)^class\s+" + re.escape(class_name) + r"\b[^\n{]*\{\s*",
             source_without_imports,
         )
         if not class_match:
             raise RuntimeError(f"Cannot locate class declaration for synthetic migration: {source}")
         is_activity = class_name == "MainActivity"
         root_expression = "findViewById" if is_activity else "requireView().findViewById"
-        getters = "\\n" + "\\n".join(
+        getters = "\n" + "\n".join(
             f"    private val {view_id}: {view_type} get() = {root_expression}(R.id.{view_id})"
             for view_id, view_type in used
-        ) + "\\n\\n"
+        ) + "\n\n"
         migrated = (
             source_without_imports[:class_match.end()]
             + getters
@@ -306,7 +306,7 @@ def main():
     if parcelize_used:
         userland_content = userland_gradle.read_text(encoding="utf-8")
         if "kotlin-parcelize" not in userland_content:
-            userland_content += "\\napply plugin: 'kotlin-parcelize'\\n"
+            userland_content += "\napply plugin: 'kotlin-parcelize'\n"
             userland_gradle.write_text(userland_content, encoding="utf-8")
 
     # Verify that no removed Android Extensions imports remain.
