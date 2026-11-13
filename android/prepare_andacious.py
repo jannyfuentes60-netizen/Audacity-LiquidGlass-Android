@@ -106,6 +106,51 @@ def patch_gradle_report_api():
     print(f"Gradle 8 report API audit passed; migrated {patched} build file(s).", flush=True)
 
 
+
+def patch_android_build_config():
+    """Enable BuildConfig only in Android modules that declare custom fields."""
+    patched = []
+    for gradle_file in ANDACIOUS.rglob("build.gradle"):
+        content = gradle_file.read_text(encoding="utf-8")
+        if not re.search(r"\\bbuildConfigField\\b", content):
+            continue
+        if not re.search(r"com\\.android\\.(application|library)", content):
+            continue
+        if re.search(r"buildFeatures\\s*\\{[^}]*\\bbuildConfig\\s+true", content, re.S):
+            continue
+        if not re.search(r"android\\s*\\{", content):
+            raise RuntimeError(f"Android block missing in module with BuildConfig fields: {gradle_file}")
+        updated = re.sub(
+            r"(android\\s*\\{)",
+            lambda match: match.group(1) + "\\n    buildFeatures { buildConfig true }",
+            content,
+            count=1,
+        )
+        gradle_file.write_text(updated, encoding="utf-8")
+        patched.append(str(gradle_file))
+
+    # Verify every Android module declaring custom BuildConfig fields has the
+    # feature explicitly enabled; don't defer this known AGP 8 failure to Gradle.
+    unresolved = []
+    for gradle_file in ANDACIOUS.rglob("build.gradle"):
+        content = gradle_file.read_text(encoding="utf-8")
+        if re.search(r"\\bbuildConfigField\\b", content) and re.search(
+            r"com\\.android\\.(application|library)", content
+        ) and not re.search(
+            r"buildFeatures\\s*\\{[^}]*\\bbuildConfig\\s+true", content, re.S
+        ):
+            unresolved.append(str(gradle_file))
+    if unresolved:
+        raise RuntimeError("BuildConfig feature not enabled in: " + ", ".join(unresolved))
+    print(
+        "Android BuildConfig audit passed; enabled in "
+        + str(len(patched))
+        + " module(s): "
+        + (", ".join(patched) if patched else "no changes needed"),
+        flush=True,
+    )
+
+
 def main():
     if not (ANDACIOUS / "settings.gradle").is_file():
         raise SystemExit(
@@ -133,6 +178,7 @@ def main():
 
     ensure_android_namespaces()
     patch_gradle_report_api()
+    patch_android_build_config()
 
     # These legacy Termux modules apply obsolete publishing plugins. They
     # are not needed to build the Android app and pull the unavailable Groovy
