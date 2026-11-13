@@ -80,6 +80,32 @@ def ensure_android_namespaces():
         print(f"Added namespace {package} to {gradle_file}", flush=True)
 
 
+def patch_gradle_report_api():
+    """Migrate removed Gradle 8 report properties across every included module."""
+    patched = 0
+    for gradle_file in ANDACIOUS.rglob("*.gradle"):
+        content = gradle_file.read_text(encoding="utf-8")
+        updated = re.sub(r"\\b(xml|html|csv)\\.enabled\\s*=", r"\\1.required =", content)
+        updated = re.sub(r"\\b(xml|html|csv)\\.destination\\b", r"\\1.outputLocation", updated)
+        if updated != content:
+            gradle_file.write_text(updated, encoding="utf-8")
+            patched += 1
+            print(f"Migrated Gradle report API in {gradle_file}", flush=True)
+
+    # Fail during preparation, with a useful path, rather than at Gradle
+    # configuration time if another module still uses removed report APIs.
+    remaining = []
+    for gradle_file in ANDACIOUS.rglob("*.gradle"):
+        content = gradle_file.read_text(encoding="utf-8")
+        if re.search(r"\\b(?:xml|html|csv)\\.enabled\\s*=", content):
+            remaining.append(str(gradle_file))
+        if re.search(r"\\b(?:xml|html|csv)\\.destination\\b", content):
+            remaining.append(str(gradle_file))
+    if remaining:
+        raise RuntimeError("Unmigrated Gradle report API in: " + ", ".join(sorted(set(remaining))))
+    print(f"Gradle 8 report API audit passed; migrated {patched} build file(s).", flush=True)
+
+
 def main():
     if not (ANDACIOUS / "settings.gradle").is_file():
         raise SystemExit(
@@ -106,6 +132,7 @@ def main():
         raise SystemExit("UserLAndLibrary mirror is missing required paths:\n" + "\n".join(missing))
 
     ensure_android_namespaces()
+    patch_gradle_report_api()
 
     # These legacy Termux modules apply obsolete publishing plugins. They
     # are not needed to build the Android app and pull the unavailable Groovy
