@@ -58,8 +58,8 @@ class DeviceAssessment {
     }
 
     final info = await DeviceInfoPlugin().androidInfo;
-    final ram = info.physicalRamSize;
-    final cores = info.numberOfProcessors;
+    final ram = (info.physicalRamSize / 1024).round();
+    final cores = Platform.numberOfProcessors;
     final lowRam = info.isLowRamDevice;
     final sdk = info.version.sdkInt;
 
