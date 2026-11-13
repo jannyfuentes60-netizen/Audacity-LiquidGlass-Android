@@ -34,20 +34,20 @@ def ensure_android_namespaces():
     """Add AGP 8 namespaces to older Android modules using their manifest package."""
     for gradle_file in ANDACIOUS.rglob("build.gradle"):
         content = gradle_file.read_text(encoding="utf-8")
-        if not re.search(r"com\\.android\\.(application|library)", content):
+        if not re.search(r"com\.android\.(application|library)", content):
             continue
-        if re.search(r"\\bnamespace\\s+", content):
+        if re.search(r"\bnamespace\s+", content):
             continue
 
         manifest = gradle_file.parent / "src/main/AndroidManifest.xml"
         package = None
         if manifest.is_file():
-            match = re.search(r'package=["\\']([^"\\']+)["\\']', manifest.read_text(encoding="utf-8"))
+            match = re.search(r"""package=["']([^"']+)["']""", manifest.read_text(encoding="utf-8"))
             if match:
                 package = match.group(1)
 
         if not package:
-            app_id = re.search(r'applicationId\\s+["\\']([^"\\']+)["\\']', content)
+            app_id = re.search(r"""applicationId\s+["']([^"']+)["']""", content)
             if app_id:
                 package = app_id.group(1)
 
@@ -58,7 +58,7 @@ def ensure_android_namespaces():
                 for source in source_root.rglob("*"):
                     if source.suffix not in (".java", ".kt"):
                         continue
-                    match = re.search(r"^package\\s+([A-Za-z0-9_.]+)", source.read_text(encoding="utf-8", errors="ignore"), re.M)
+                    match = re.search(r"^package\s+([A-Za-z0-9_.]+)", source.read_text(encoding="utf-8", errors="ignore"), re.M)
                     if match:
                         package = match.group(1)
                         break
@@ -68,11 +68,11 @@ def ensure_android_namespaces():
         if not package:
             raise RuntimeError(f"Cannot infer Android namespace for {gradle_file}")
 
-        if not re.search(r"android\\s*\\{", content):
+        if not re.search(r"android\s*\{", content):
             raise RuntimeError(f"Android block not found in {gradle_file}")
         content = re.sub(
-            r"(android\\s*\\{)",
-            r"\\1\\n    namespace '" + package + "'",
+            r"(android\s*\{)",
+            lambda match: match.group(1) + "\n    namespace '" + package + "'",
             content,
             count=1,
         )
