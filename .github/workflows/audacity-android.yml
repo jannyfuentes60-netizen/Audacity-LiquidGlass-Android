@@ -1,5 +1,6 @@
 name: Audacity 4.0.2 Android (Andacious runtime)
 
+# Rebuild after correcting the generated Flutter module metadata check.
 "on":
   workflow_dispatch:
   push:
