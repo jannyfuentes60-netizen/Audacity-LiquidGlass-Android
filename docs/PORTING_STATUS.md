@@ -21,7 +21,7 @@ Official **Audacity 4.0.2 AArch64**, launched inside the Android/Linux compatibi
 |---|---|---|
 | Andacious Android shell | Reuse Android activity, UserLAnd runtime and VNC interaction | Investigating |
 | UserLAndLibrary source | Resolve the inaccessible pinned submodule using a compatible source mirror | Investigating |
-| Audacity binary | Use official 4.0.2 AArch64 AppImage | Available upstream |
+| Audacity binary | Use official 4.0.2 AArch64 AppImage | Available upstream; third-party plugin support is absent in this ARM64 build |
 | AppImage installer | Download, checksum-verify and extract without FUSE | Prototype |
 | Original Audacity UI | Launch the actual 4.0.2 Linux application | Not verified |
 | Touch and keyboard | Operate the original UI from Android | Not verified |
