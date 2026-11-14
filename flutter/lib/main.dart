@@ -25,7 +25,7 @@ extension GlassTierLabel on GlassTier {
       };
 
   String get description => switch (this) {
-        GlassTier.premium => 'Refacción, iluminación y lentes Liquid Glass completos.',
+        GlassTier.premium => 'Refracción, iluminación y lentes Liquid Glass completos.',
         GlassTier.standard => 'Efectos equilibrados para mantener la biblioteca fluida.',
         GlassTier.minimal => 'Efectos reducidos para dispositivos con recursos limitados.',
       };
@@ -69,9 +69,6 @@ class DeviceAssessment {
     final lowRam = info.isLowRamDevice;
     final sdk = info.version.sdkInt;
 
-    // This is deliberately conservative: device_info_plus does not expose a
-    // reliable GPU benchmark. Premium is recommended only when the device
-    // has sufficient RAM/CPU and Android does not classify it as low-RAM.
     final GlassTier tier;
     final String reason;
     if (!lowRam && ram >= 8 && cores >= 8 && sdk >= 29) {
@@ -174,7 +171,7 @@ class _AudacityLibraryAppState extends State<AudacityLibraryApp> {
                 onTierChanged: _saveTier,
               ),
       ),
-      brightnessResolver: Theme.maybeBrightnessOf,
+      brightnessResolver: (_) => Brightness.light,
       theme: GlassThemeData.simple(quality: _tier.quality),
     );
   }
@@ -207,7 +204,7 @@ class QualitySetupScreen extends StatelessWidget {
             const Text('Calidad Liquid Glass',
                 style: TextStyle(fontSize: 29, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            Text('Analizamos las características del dispositivo para recomendar la mejor experiencia disponible.'),
+            const Text('Analizamos las características del dispositivo para recomendar la mejor experiencia disponible.'),
             const SizedBox(height: 18),
             _InfoPanel(assessment: assessment),
             const SizedBox(height: 20),
