@@ -105,18 +105,102 @@ jobs:
           cd android/andacious/UserLAndLibrary/remote-desktop-clients/remoteClientLib/jni/libs
           bash -n build-deps.sh
           ./build-deps.sh freerdp-only
-          MODULE="deps/FreeRDP/client/Android/Studio/freeRDPCore"
+          MODULE="deps/FreeRDP/client/Android/Studio/freeRDPCore/freeRDPCore"
           test -f "$MODULE/build.gradle"
           test -f "$MODULE/src/main/AndroidManifest.xml"
           test -d "$MODULE/src/main/jniLibs/arm64-v8a"
           find "$MODULE/src/main/jniLibs/arm64-v8a" -maxdepth 1 -type f -name '*.so' -print -quit | grep -q .
-          # The generated legacy FreeRDPCore project reads compileApi from
-          # Gradle extra properties before its android block is evaluated.
-          # Define it in that project, then provide the AGP 8 compile SDK.
-          sed -i '1i ext.compileApi = 35' "$MODULE/build.gradle"
-          printf '\nandroid {\n    compileSdkVersion 35\n}\n' >> "$MODULE/build.gradle"
-          grep -q "ext.compileApi = 35" "$MODULE/build.gradle"
-          grep -q "compileSdkVersion 35" "$MODULE/build.gradle"
+          # The generated FreeRDPCore child project reads compileApi from
+          # its own Gradle extra-properties extension during evaluation.
+          # Define it in that exact project and provide its compile SDK.
+          if ! grep -q '^ext.compileApi = 35
+
+      - name: Resolve dependency graphs for every included module
+        working-directory: android/andacious
+        run: |
+          ./gradlew --no-daemon --stacktrace --continue \
+            :app:dependencies \
+            :UserLAndLibrary:dependencies \
+            :terminal-app:dependencies \
+            :terminal-view:dependencies \
+            :terminal-emulator:dependencies \
+            :bVNC:dependencies \
+            :pubkeyGenerator:dependencies \
+            :remoteClientLib:dependencies \
+            :remoteClientLib:jni:libs:deps:FreeRDP:client:Android:Studio:freeRDPCore:dependencies
+
+      - name: Build Android APK
+        working-directory: android/andacious
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Validate and stage APK
+        shell: bash
+        run: |
+          APK="android/andacious/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -s "$APK" ] || [ "$(stat -c%s "$APK")" -lt 1000000 ]; then
+            echo "::error::A real Android APK was not produced."
+            find android/andacious -path '*/build/outputs/*' -type f -print || true
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp "$APK" artifacts/Audacity-4.0.2-Andacious-Android.apk
+          ls -lh artifacts
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Audacity-4.0.2-Andacious-Android
+          path: artifacts/Audacity-4.0.2-Andacious-Android.apk
+          if-no-files-found: error
+          retention-days: 14
+ "$MODULE/build.gradle"; then
+            sed -i '1i ext.compileApi = 35' "$MODULE/build.gradle"
+          fi
+          if ! grep -q 'compileSdkVersion 35' "$MODULE/build.gradle"; then
+            printf '\nandroid {\n    compileSdkVersion 35\n}\n' >> "$MODULE/build.gradle"
+          fi
+          grep -q '^ext.compileApi = 35
+
+      - name: Resolve dependency graphs for every included module
+        working-directory: android/andacious
+        run: |
+          ./gradlew --no-daemon --stacktrace --continue \
+            :app:dependencies \
+            :UserLAndLibrary:dependencies \
+            :terminal-app:dependencies \
+            :terminal-view:dependencies \
+            :terminal-emulator:dependencies \
+            :bVNC:dependencies \
+            :pubkeyGenerator:dependencies \
+            :remoteClientLib:dependencies \
+            :remoteClientLib:jni:libs:deps:FreeRDP:client:Android:Studio:freeRDPCore:dependencies
+
+      - name: Build Android APK
+        working-directory: android/andacious
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Validate and stage APK
+        shell: bash
+        run: |
+          APK="android/andacious/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -s "$APK" ] || [ "$(stat -c%s "$APK")" -lt 1000000 ]; then
+            echo "::error::A real Android APK was not produced."
+            find android/andacious -path '*/build/outputs/*' -type f -print || true
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp "$APK" artifacts/Audacity-4.0.2-Andacious-Android.apk
+          ls -lh artifacts
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Audacity-4.0.2-Andacious-Android
+          path: artifacts/Audacity-4.0.2-Andacious-Android.apk
+          if-no-files-found: error
+          retention-days: 14
+ "$MODULE/build.gradle"
+          grep -q 'compileSdkVersion 35' "$MODULE/build.gradle"
 
       - name: Resolve dependency graphs for every included module
         working-directory: android/andacious
