@@ -1,6 +1,6 @@
 name: Audacity 4.0.2 Android (Andacious runtime)
 
-# Build with generated Flutter module metadata preserved.
+# Build with generated Flutter module metadata preserved and current library source.
 "on":
   workflow_dispatch:
   push:
